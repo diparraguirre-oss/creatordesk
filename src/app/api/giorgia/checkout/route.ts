@@ -1,6 +1,8 @@
 ﻿import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
+export const dynamic = 'force-dynamic';
+
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder_for_build';
 const stripe = new Stripe(stripeSecretKey, {
   apiVersion: '2023-10-16' as any,
@@ -10,7 +12,7 @@ export async function POST(request: Request) {
   try {
     const { priceId, userId } = await request.json();
     if (!process.env.STRIPE_SECRET_KEY) {
-      return NextResponse.json({ error: 'Stripe no está configurado en las variables de entorno' }, { status: 500 });
+      return NextResponse.json({ error: 'Stripe no está configurado' }, { status: 500 });
     }
 
     const session = await stripe.checkout.sessions.create({
