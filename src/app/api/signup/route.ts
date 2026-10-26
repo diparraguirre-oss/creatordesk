@@ -1,70 +1,63 @@
-export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { email, password, fullName, mainHandle, gender, birthDate } = body;
+    const { firstName, lastName, fullName, identifier, password, email, phone } = body;
 
-    // 1. Registrar usuario en Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          main_handle: mainHandle,
-        },
-      },
+    const nameToSave = fullName || `${firstName || ''} ${lastName || ''}`.trim() || 'Nuevo Creador';
+    const inputCredential = identifier || email || phone;
+
+    if (!inputCredential || !password) {
+      return NextResponse.json({ error: 'Credencial y contraseña son requeridas' }, { status: 400 });
+    }
+
+    // Determinar si es correo o teléfono
+    const isEmail = inputCredential.includes('@');
+    const userEmail = isEmail ? inputCredential : `phone_${inputCredential.replace(/\D/g, '')}@creatordesk.app`;
+    const userPhone = isEmail ? null : inputCredential;
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder';
+
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false },
+      global: { headers: { apikey: serviceRoleKey } },
     });
 
-    let userId = authData?.user?.id;
+    // 1. Crear usuario en Supabase Auth con Service Role
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: userEmail,
+      password: password,
+      email_confirm: true,
+      user_metadata: { 
+        full_name: nameToSave, 
+        phone: userPhone,
+        email: isEmail ? userEmail : null 
+      }
+    });
 
-    if (authError && authError.message.includes('rate limit')) {
-      userId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `usr_${Date.now()}`;
-    } else if (authError) {
+    if (authError) {
       return NextResponse.json({ error: authError.message }, { status: 400 });
     }
 
-    if (userId) {
-      // 2. Probar insercion con estados de suscripcion aceptados por la constraint de Supabase
-      const statusOptions = ['trialing', 'trial', 'active', 'PRUEBA'];
-      let profileSaved = false;
+    const userId = authData.user.id;
 
-      for (const statusVal of statusOptions) {
-        const { error: profileErr } = await supabase.from('profiles').upsert([
-          {
-            id: userId,
-            full_name: fullName,
-            main_handle: mainHandle,
-            gender: gender || 'No especificado',
-            birth_date: birthDate || null,
-            subscription_status: statusVal,
-          },
-        ]);
+    // 2. Persistir perfil en la tabla profiles
+    await supabaseAdmin.from('profiles').upsert({
+      id: userId,
+      full_name: nameToSave,
+      email: isEmail ? userEmail : null,
+      phone: userPhone,
+      created_at: new Date().toISOString(),
+      subscription_status: 'trialing',
+      subscription_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    });
 
-        if (!profileErr) {
-          profileSaved = true;
-          break;
-        }
-      }
-
-      // Si las opciones anteriores fallan por el enum de la base de datos, guardar omitiendo la columna
-      if (!profileSaved) {
-        await supabase.from('profiles').upsert([
-          {
-            id: userId,
-            full_name: fullName,
-            main_handle: mainHandle,
-            gender: gender || 'No especificado',
-            birth_date: birthDate || null,
-          },
-        ]);
-      }
-    }
-
-    return NextResponse.json({ success: true, userId });
+    return NextResponse.json({ success: true, user: authData.user });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Error en el servidor' }, { status: 500 });
   }
