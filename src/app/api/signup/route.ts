@@ -14,7 +14,7 @@ export async function POST(req: Request) {
 
     if (!supabaseUrl || !serviceRoleKey) {
       return NextResponse.json(
-        { error: 'Error de configuración del servidor. Falta SUPABASE_SERVICE_ROLE_KEY en Vercel.' },
+        { error: 'Error de configuración en Vercel: SUPABASE_SERVICE_ROLE_KEY no está definida.' },
         { status: 500 }
       );
     }
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     const cleanPhone = identifier.replace(/\D/g, '');
     const userEmail = isEmail ? identifier.trim() : `${cleanPhone}@creatordesk.app`;
 
-    // Crear usuario usando admin API
+    // Crear usuario en Auth mediante Service Role Bypass
     const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: userEmail,
       password: password,
@@ -44,7 +44,6 @@ export async function POST(req: Request) {
     }
 
     if (authUser.user) {
-      // Guardar registro en la tabla pública profiles
       const now = new Date();
       const trialExpires = new Date();
       trialExpires.setDate(now.getDate() + 7);
