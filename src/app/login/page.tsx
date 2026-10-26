@@ -21,7 +21,7 @@ function LoginForm() {
 
   useEffect(() => {
     if (searchParams.get('registered') === 'true') {
-      setSuccessMsg('¡Cuenta registrada exitosamente! Ahora puedes iniciar sesión.');
+      setSuccessMsg('¡Registro exitoso! Ya puedes iniciar sesión.');
     }
   }, [searchParams]);
 
@@ -35,7 +35,7 @@ function LoginForm() {
       const cleanInput = identifier.trim();
       const isEmail = cleanInput.includes('@');
       const cleanPhone = cleanInput.replace(/\D/g, '');
-      const loginEmail = isEmail ? cleanInput : `${cleanPhone}@creatordesk.app`;
+      const loginEmail = isEmail ? cleanInput : `phone_${cleanPhone}@creatordesk.app`;
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email: loginEmail,
