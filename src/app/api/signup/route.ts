@@ -1,64 +1,66 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-export const dynamic = 'force-dynamic';
-
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const body = await request.json();
-    const { firstName, lastName, fullName, identifier, password, email, phone } = body;
+    const { firstName, lastName, fullName, identifier, password } = await req.json();
 
-    const nameToSave = fullName || `${firstName || ''} ${lastName || ''}`.trim() || 'Nuevo Creador';
-    const inputCredential = identifier || email || phone;
-
-    if (!inputCredential || !password) {
-      return NextResponse.json({ error: 'Credencial y contraseña son requeridas' }, { status: 400 });
+    if (!identifier || !password) {
+      return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
 
-    // Determinar si es correo o teléfono
-    const isEmail = inputCredential.includes('@');
-    const userEmail = isEmail ? inputCredential : `phone_${inputCredential.replace(/\D/g, '')}@creatordesk.app`;
-    const userPhone = isEmail ? null : inputCredential;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder';
+    if (!supabaseUrl || !serviceRoleKey) {
+      return NextResponse.json(
+        { error: 'Error de configuración del servidor. Falta SUPABASE_SERVICE_ROLE_KEY en Vercel.' },
+        { status: 500 }
+      );
+    }
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false },
       global: { headers: { apikey: serviceRoleKey } },
     });
 
-    // 1. Crear usuario en Supabase Auth con Service Role
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    const isEmail = identifier.includes('@');
+    const cleanPhone = identifier.replace(/\D/g, '');
+    const userEmail = isEmail ? identifier.trim() : `${cleanPhone}@creatordesk.app`;
+
+    // Crear usuario usando admin API
+    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: userEmail,
       password: password,
       email_confirm: true,
-      user_metadata: { 
-        full_name: nameToSave, 
-        phone: userPhone,
-        email: isEmail ? userEmail : null 
-      }
+      user_metadata: {
+        full_name: fullName || `${firstName} ${lastName}`.trim(),
+        phone: isEmail ? null : cleanPhone,
+      },
     });
 
     if (authError) {
       return NextResponse.json({ error: authError.message }, { status: 400 });
     }
 
-    const userId = authData.user.id;
+    if (authUser.user) {
+      // Guardar registro en la tabla pública profiles
+      const now = new Date();
+      const trialExpires = new Date();
+      trialExpires.setDate(now.getDate() + 7);
 
-    // 2. Persistir perfil en la tabla profiles
-    await supabaseAdmin.from('profiles').upsert({
-      id: userId,
-      full_name: nameToSave,
-      email: isEmail ? userEmail : null,
-      phone: userPhone,
-      created_at: new Date().toISOString(),
-      subscription_status: 'trialing',
-      subscription_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    });
+      await supabaseAdmin.from('profiles').upsert({
+        id: authUser.user.id,
+        full_name: fullName || `${firstName} ${lastName}`.trim(),
+        email: isEmail ? userEmail : null,
+        phone: isEmail ? null : cleanPhone,
+        subscription_status: 'trialing',
+        subscription_expires_at: trialExpires.toISOString(),
+      });
+    }
 
-    return NextResponse.json({ success: true, user: authData.user });
+    return NextResponse.json({ success: true, user: authUser.user });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Error en el servidor' }, { status: 500 });
+    return NextResponse.json({ error: err.message || 'Error interno del servidor' }, { status: 500 });
   }
 }
