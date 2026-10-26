@@ -17,18 +17,20 @@ export async function POST(req: Request) {
     }
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false }
+      auth: { autoRefreshToken: false, persistSession: false },
+      db: { schema: 'public' }
     });
 
     const cleanInput = identifier.toString().trim();
     const isEmail = cleanInput.includes('@');
     const cleanPhone = cleanInput.replace(/\D/g, '');
     
-    // Mapeo sintético exacto de correo
     const syntheticEmail = isEmail ? cleanInput : `phone_${cleanPhone}@creatordesk.app`;
     const fullName = `${firstName || ''} ${lastName || ''}`.trim() || 'Usuario';
 
-    // 1. Crear usuario en Auth bypassing confirmación
+    // 1. Obtener o crear el usuario en Auth
+    let userId = null;
+
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: syntheticEmail,
       password: password,
@@ -36,10 +38,7 @@ export async function POST(req: Request) {
       user_metadata: { full_name: fullName, phone: isEmail ? null : cleanPhone }
     });
 
-    let userId = authData?.user?.id;
-
     if (authError) {
-      // Si el usuario ya fue registrado previamente en Auth, actualizar contraseña y recuperar id
       const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
       const existingUser = existingUsers?.users?.find(u => u.email === syntheticEmail);
 
@@ -52,20 +51,30 @@ export async function POST(req: Request) {
       } else {
         return NextResponse.json({ error: authError.message }, { status: 400 });
       }
+    } else {
+      userId = authData?.user?.id;
     }
 
+    // 2. Inserción forzada en la tabla profiles
     if (userId) {
       const trialExpires = new Date();
       trialExpires.setDate(trialExpires.getDate() + 7);
 
-      // 2. Insertar en profiles usando los campos exactos de tu esquema de BD
-      await supabaseAdmin.from('profiles').upsert({
-        id: userId,
-        full_name: fullName,
-        email: syntheticEmail,
-        subscription_status: 'trial',
-        trial_ends_at: trialExpires.toISOString()
-      });
+      const { error: profileError } = await supabaseAdmin.from('profiles').upsert(
+        {
+          id: userId,
+          full_name: fullName,
+          email: syntheticEmail,
+          subscription_status: 'trial',
+          trial_ends_at: trialExpires.toISOString()
+        },
+        { onConflict: 'id' }
+      );
+
+      if (profileError) {
+        console.error('Error insertando en profiles:', profileError);
+        return NextResponse.json({ error: profileError.message }, { status: 500 });
+      }
     }
 
     return NextResponse.json({ success: true });
