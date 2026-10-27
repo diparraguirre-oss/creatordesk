@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useState } from 'react';
 
 interface Profile {
@@ -21,7 +23,7 @@ export default function AdminDashboardPage() {
   const fetchProfiles = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/users');
+      const res = await fetch('/api/admin/users', { cache: 'no-store' });
       const data = await res.json();
       if (data.profiles) {
         setProfiles(data.profiles);
@@ -104,7 +106,7 @@ export default function AdminDashboardPage() {
               </svg>
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white">Panel Administrador</h1>
+              <h1 className="text-xl font-bold text-white">Panel Administrador v2</h1>
               <p className="text-xs text-slate-400">Control total de CreatorDesk SaaS</p>
             </div>
           </div>
