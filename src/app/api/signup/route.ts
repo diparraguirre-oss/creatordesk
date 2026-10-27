@@ -17,7 +17,6 @@ export async function POST(req: Request) {
     const cleanPhone = cleanInput.replace(/\D/g, '');
 
     const emailToAuth = isEmail ? cleanInput : `phone_${cleanPhone}@creatordesk.app`;
-    const phoneToStore = isEmail ? null : cleanPhone;
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -46,14 +45,13 @@ export async function POST(req: Request) {
     const trialEnds = new Date();
     trialEnds.setDate(trialEnds.getDate() + 7);
 
-    // 2. Insertar o actualizar en la tabla profiles
+    // 2. Insertar o actualizar en la tabla profiles sin la columna 'phone'
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .upsert({
         id: userId,
         full_name: fullName,
-        email: isEmail ? cleanInput : emailToAuth,
-        phone: phoneToStore,
+        email: emailToAuth,
         subscription_status: 'trial',
         trial_ends_at: trialEnds.toISOString(),
         updated_at: new Date().toISOString()
