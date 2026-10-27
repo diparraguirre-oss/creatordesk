@@ -1,12 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 interface Profile {
   id: string;
@@ -26,13 +20,17 @@ export default function AdminDashboardPage() {
 
   const fetchProfiles = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (data) setProfiles(data);
-    setLoading(false);
+    try {
+      const res = await fetch('/api/admin/users');
+      const data = await res.json();
+      if (data.profiles) {
+        setProfiles(data.profiles);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -44,18 +42,25 @@ export default function AdminDashboardPage() {
       alert('Sin credencial registrada');
       return;
     }
-    const confirmAction = confirm(`¿Enviar correo de restablecimiento de contraseña a ${name} (${email})?`);
+    const confirmAction = confirm(`¿Enviar restablecimiento de contraseña a ${name} (${email})?`);
     if (!confirmAction) return;
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/login`,
-    });
-
-    if (error) {
-      setActionMsg(`Error: ${error.message}`);
-    } else {
-      setActionMsg(`Enlace enviado a ${email}`);
+    try {
+      const res = await fetch('/api/admin/update-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const resData = await res.json();
+      if (resData.success) {
+        setActionMsg(`Instrucciones enviadas a ${email}`);
+      } else {
+        setActionMsg(`Resultado: ${resData.error || 'Procesado'}`);
+      }
+    } catch (err: any) {
+      setActionMsg(`Error de conexión al resetear.`);
     }
+
     setTimeout(() => setActionMsg(null), 4000);
   };
 
@@ -63,16 +68,22 @@ export default function AdminDashboardPage() {
     const baseDate = currentExp ? new Date(currentExp) : new Date();
     baseDate.setDate(baseDate.getDate() + 30);
 
-    await supabase.from('profiles').update({
-      trial_ends_at: baseDate.toISOString()
-    }).eq('id', id);
+    await fetch('/api/admin/users', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, trial_ends_at: baseDate.toISOString() })
+    });
 
     fetchProfiles();
   };
 
   const handleDeleteUser = async (id: string) => {
     if (!confirm('¿Eliminar usuario?')) return;
-    await supabase.from('profiles').delete().eq('id', id);
+    await fetch('/api/admin/delete-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: id })
+    });
     fetchProfiles();
   };
 
@@ -106,7 +117,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {actionMsg && (
-          <div className="p-3 bg-purple-950/60 border border-purple-500/40 text-purple-200 rounded-xl text-xs text-center">
+          <div className="p-3 bg-purple-950/60 border border-purple-500/40 text-purple-200 rounded-xl text-xs text-center font-medium">
             {actionMsg}
           </div>
         )}
@@ -115,14 +126,14 @@ export default function AdminDashboardPage() {
         <div>
           <input
             type="text"
-            placeholder="Buscar por nombre..."
+            placeholder="Buscar por nombre o correo..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full max-w-sm px-4 py-2 bg-[#0d0d1b] border border-slate-800/80 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-purple-500"
           />
         </div>
 
-        {/* Tabla con columnas actualizadas */}
+        {/* Tabla con la nueva columna de Login */}
         <div className="bg-[#0d0d1b] border border-slate-800/80 rounded-2xl overflow-hidden shadow-2xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-300">
@@ -140,7 +151,7 @@ export default function AdminDashboardPage() {
                 {loading ? (
                   <tr>
                     <td colSpan={6} className="p-8 text-center text-slate-500">
-                      Cargando...
+                      Cargando creadores...
                     </td>
                   </tr>
                 ) : filtered.length === 0 ? (
