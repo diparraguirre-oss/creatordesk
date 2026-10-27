@@ -43,7 +43,7 @@ export default function AdminDashboardPage() {
 
   const handleResetPassword = async (email: string, name: string) => {
     if (!email) {
-      alert('Este usuario no tiene una credencial de correo/teléfono válida.');
+      alert('Este usuario no tiene credencial registrada.');
       return;
     }
 
@@ -57,7 +57,7 @@ export default function AdminDashboardPage() {
     if (error) {
       setActionMsg(`Error: ${error.message}`);
     } else {
-      setActionMsg(`Enlace de restablecimiento enviado exitosamente a ${email}`);
+      setActionMsg(`Enlace enviado a ${email}`);
     }
 
     setTimeout(() => setActionMsg(null), 4000);
@@ -72,8 +72,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center bg-slate-900/80 border border-slate-800 p-6 rounded-2xl backdrop-blur-md">
+        <div className="flex justify-between items-center bg-slate-900/80 border border-slate-800 p-6 rounded-2xl">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-purple-600/20 border border-purple-500/30 rounded-xl flex items-center justify-center text-purple-400">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -82,7 +81,7 @@ export default function AdminDashboardPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">Panel Administrador</h1>
-              <p className="text-xs text-slate-400">Control total y credenciales de acceso CreatorDesk SaaS</p>
+              <p className="text-xs text-slate-400">Control total de CreatorDesk SaaS</p>
             </div>
           </div>
           <button
@@ -99,18 +98,16 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* Buscador */}
         <div className="relative">
           <input
             type="text"
-            placeholder="Buscar por nombre, celular o correo..."
+            placeholder="Buscar por nombre..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full max-w-md px-4 py-2.5 bg-slate-900/90 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500"
+            className="w-full max-w-md px-4 py-2.5 bg-slate-900/90 border border-slate-800 rounded-xl text-xs text-slate-200"
           />
         </div>
 
-        {/* Tabla */}
         <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-300">
@@ -121,7 +118,7 @@ export default function AdminDashboardPage() {
                   <th className="p-4">Registrado El</th>
                   <th className="p-4">Vence El</th>
                   <th className="p-4">Estado</th>
-                  <th className="p-4 text-right">Acciones de Acceso</th>
+                  <th className="p-4 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
@@ -146,9 +143,7 @@ export default function AdminDashboardPage() {
                     return (
                       <tr key={p.id} className="hover:bg-slate-800/40 transition">
                         <td className="p-4 font-semibold text-white">{p.full_name || 'Sin nombre'}</td>
-                        <td className="p-4 text-purple-300 font-mono text-[11px]">
-                          {displayLogin}
-                        </td>
+                        <td className="p-4 text-purple-300 font-mono text-[11px]">{displayLogin}</td>
                         <td className="p-4 text-slate-400">{regDate}</td>
                         <td className="p-4 text-amber-400 font-semibold">{expDate}</td>
                         <td className="p-4">
@@ -156,7 +151,7 @@ export default function AdminDashboardPage() {
                             PRUEBA (7 DÍAS)
                           </span>
                         </td>
-                        <td className="p-4 text-right">
+                        <td className="p-4 text-right flex justify-end gap-2">
                           <button
                             onClick={() => handleResetPassword(p.email, p.full_name)}
                             className="px-3 py-1.5 bg-purple-900/40 hover:bg-purple-800/60 border border-purple-500/40 text-purple-200 rounded-lg text-[11px] font-medium transition"
