@@ -3,81 +3,67 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function POST(req: Request) {
   try {
-    const { firstName, lastName, identifier, password } = await req.json();
+    const body = await req.json();
+    const fullName = body.fullName || `${body.firstName || ''} ${body.lastName || ''}`.trim();
+    const rawIdentifier = body.identifier || body.email || body.phone;
+    const password = body.password;
 
-    if (!identifier || !password) {
+    if (!rawIdentifier || !password) {
       return NextResponse.json({ error: 'Celular/Correo y contraseña son requeridos' }, { status: 400 });
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !serviceRoleKey) {
-      return NextResponse.json({ error: 'Configuración del servidor incompleta (Service Role).' }, { status: 500 });
-    }
-
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-      db: { schema: 'public' }
-    });
-
-    const cleanInput = identifier.toString().trim();
+    const cleanInput = String(rawIdentifier).trim();
     const isEmail = cleanInput.includes('@');
     const cleanPhone = cleanInput.replace(/\D/g, '');
-    
-    const syntheticEmail = isEmail ? cleanInput : `phone_${cleanPhone}@creatordesk.app`;
-    const fullName = `${firstName || ''} ${lastName || ''}`.trim() || 'Usuario';
 
-    // 1. Obtener o crear el usuario en Auth
-    let userId = null;
+    const emailToAuth = isEmail ? cleanInput : `phone_${cleanPhone}@creatordesk.app`;
+    const phoneToStore = isEmail ? null : cleanPhone;
 
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !serviceKey) {
+      return NextResponse.json({ error: 'Configuración incompleta en el servidor.' }, { status: 500 });
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, serviceKey, {
+      auth: { persistSession: false }
+    });
+
+    // 1. Crear usuario en Supabase Auth
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: syntheticEmail,
+      email: emailToAuth,
       password: password,
       email_confirm: true,
-      user_metadata: { full_name: fullName, phone: isEmail ? null : cleanPhone }
+      user_metadata: { full_name: fullName }
     });
 
     if (authError) {
-      const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-      const existingUser = existingUsers?.users?.find(u => u.email === syntheticEmail);
-
-      if (existingUser) {
-        userId = existingUser.id;
-        await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
-          password: password,
-          email_confirm: true
-        });
-      } else {
-        return NextResponse.json({ error: authError.message }, { status: 400 });
-      }
-    } else {
-      userId = authData?.user?.id;
+      return NextResponse.json({ error: authError.message }, { status: 400 });
     }
 
-    // 2. Inserción forzada en la tabla profiles
-    if (userId) {
-      const trialExpires = new Date();
-      trialExpires.setDate(trialExpires.getDate() + 7);
+    const userId = authData.user.id;
+    const trialEnds = new Date();
+    trialEnds.setDate(trialEnds.getDate() + 7);
 
-      const { error: profileError } = await supabaseAdmin.from('profiles').upsert(
-        {
-          id: userId,
-          full_name: fullName,
-          email: syntheticEmail,
-          subscription_status: 'trial',
-          trial_ends_at: trialExpires.toISOString()
-        },
-        { onConflict: 'id' }
-      );
+    // 2. Insertar o actualizar en la tabla profiles
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .upsert({
+        id: userId,
+        full_name: fullName,
+        email: isEmail ? cleanInput : emailToAuth,
+        phone: phoneToStore,
+        subscription_status: 'trial',
+        trial_ends_at: trialEnds.toISOString(),
+        updated_at: new Date().toISOString()
+      });
 
-      if (profileError) {
-        console.error('Error insertando en profiles:', profileError);
-        return NextResponse.json({ error: profileError.message }, { status: 500 });
-      }
+    if (profileError) {
+      return NextResponse.json({ error: profileError.message }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, userId });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Error del servidor' }, { status: 500 });
   }
