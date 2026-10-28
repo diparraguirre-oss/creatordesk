@@ -52,11 +52,16 @@ export default function AdminDashboardPage() {
     window.location.href = '/admin/login';
   };
 
+  const formatDate = (isoStr: string) => {
+    if (!isoStr) return 'N/A';
+    const d = new Date(isoStr);
+    return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+
   const filteredCreators = creators.filter((c) =>
     c.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.phone?.includes(searchTerm) ||
-    c.slug?.toLowerCase().includes(searchTerm.toLowerCase())
+    c.phone?.includes(searchTerm)
   );
 
   if (loading || !authenticated) {
@@ -70,7 +75,6 @@ export default function AdminDashboardPage() {
   return (
     <div className="min-h-screen bg-[#080811] text-slate-100 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Cabecera Principal */}
         <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-purple-900/30 pb-4 gap-4">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-tr from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center font-black text-white text-base shadow-md shadow-purple-900/40">
@@ -97,32 +101,29 @@ export default function AdminDashboardPage() {
           </div>
         </header>
 
-        {/* Métricas Rápidas */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-[#0d0d1b] border border-slate-800/80 p-5 rounded-2xl space-y-1">
             <span className="text-xs text-slate-400 font-medium">Total de Creadores Registrados</span>
             <div className="text-2xl font-black text-purple-400">{creators.length}</div>
           </div>
           <div className="bg-[#0d0d1b] border border-slate-800/80 p-5 rounded-2xl space-y-1">
-            <span className="text-xs text-slate-400 font-medium">Cuentas en Prueba Gratuita</span>
-            <div className="text-2xl font-black text-pink-400">
-              {creators.filter(c => c.subscriptionStatus.includes('PRUEBA')).length}
+            <span className="text-xs text-slate-400 font-medium">Cuentas Activas (En Prueba)</span>
+            <div className="text-2xl font-black text-emerald-400">
+              {creators.filter(c => !c.isExpired).length}
             </div>
           </div>
           <div className="bg-[#0d0d1b] border border-slate-800/80 p-5 rounded-2xl space-y-1">
-            <span className="text-xs text-slate-400 font-medium">Estado de la Base de Datos</span>
-            <div className="text-xs text-emerald-400 font-semibold flex items-center gap-1.5 pt-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              Sincronizado en Tiempo Real
+            <span className="text-xs text-slate-400 font-medium">Cuentas Vencidas</span>
+            <div className="text-2xl font-black text-rose-400">
+              {creators.filter(c => c.isExpired).length}
             </div>
           </div>
         </div>
 
-        {/* Buscador de Creadores */}
         <div className="flex items-center justify-between gap-4 bg-[#0d0d1b] p-4 rounded-2xl border border-slate-800/80">
           <input
             type="text"
-            placeholder="Buscar por nombre, correo, teléfono o slug..."
+            placeholder="Buscar por nombre, correo o teléfono..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full max-w-md px-4 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500 transition"
@@ -132,7 +133,6 @@ export default function AdminDashboardPage() {
           </span>
         </div>
 
-        {/* Tabla de Creadores */}
         <div className="bg-[#0d0d1b] border border-slate-800/80 rounded-2xl overflow-hidden shadow-xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
@@ -140,7 +140,8 @@ export default function AdminDashboardPage() {
                 <tr>
                   <th className="py-3.5 px-4">Creador / Nombre</th>
                   <th className="py-3.5 px-4">Contacto (Correo / Celular)</th>
-                  <th className="py-3.5 px-4">Ruta Personalizada</th>
+                  <th className="py-3.5 px-4">Fecha Creación</th>
+                  <th className="py-3.5 px-4">Fecha Vencimiento</th>
                   <th className="py-3.5 px-4">Estado Membresía</th>
                   <th className="py-3.5 px-4 text-center">Acciones</th>
                 </tr>
@@ -148,7 +149,7 @@ export default function AdminDashboardPage() {
               <tbody className="divide-y divide-slate-800/60 text-slate-300">
                 {filteredCreators.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-slate-500">
+                    <td colSpan={6} className="py-8 text-center text-slate-500">
                       No se encontraron cuentas asociadas.
                     </td>
                   </tr>
@@ -164,15 +165,24 @@ export default function AdminDashboardPage() {
                           <div className="text-[10px] text-purple-400 font-mono">📱 {c.phone}</div>
                         )}
                       </td>
-                      <td className="py-3.5 px-4 font-mono text-purple-300">
-                        /creatordesk/{c.slug}
+                      <td className="py-3.5 px-4 text-slate-300 font-medium">
+                        {formatDate(c.createdAt)}
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-300 font-medium">
+                        {formatDate(c.expiresAt)}
                       </td>
                       <td className="py-3.5 px-4">
-                        <span className="px-2.5 py-1 bg-purple-950/80 border border-purple-800/60 text-purple-300 rounded-lg text-[10px] font-bold uppercase">
+                        <span
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase border ${
+                            c.isExpired
+                              ? 'bg-rose-950/80 border-rose-800/60 text-rose-400'
+                              : 'bg-purple-950/80 border-purple-800/60 text-purple-300'
+                          }`}
+                        >
                           {c.subscriptionStatus}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-center space-x-2">
+                      <td className="py-3.5 px-4 text-center">
                         <a
                           href={`/creatordesk/${c.slug}`}
                           target="_blank"
@@ -184,7 +194,7 @@ export default function AdminDashboardPage() {
                       </td>
                     </tr>
                   ))
-                ) }
+                )}
               </tbody>
             </table>
           </div>

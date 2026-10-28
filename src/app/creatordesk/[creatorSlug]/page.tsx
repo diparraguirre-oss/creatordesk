@@ -7,13 +7,34 @@ import { useEffect, useState } from 'react';
 export default function CreatorSlugPage({ params }: { params: { creatorSlug?: string } }) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [isExpired, setIsExpired] = useState(false);
+  const [daysRemaining, setDaysRemaining] = useState<number>(7);
+  const [createdAtFormatted, setCreatedAtFormatted] = useState('');
+  const [expiresAtFormatted, setExpiresAtFormatted] = useState('');
 
   useEffect(() => {
     const localUser = localStorage.getItem('creatordesk_user');
 
     if (localUser) {
       try {
-        setUser(JSON.parse(localUser));
+        const parsed = JSON.parse(localUser);
+        setUser(parsed);
+
+        // Si la sesión guardada tiene timestamp o fecha de creación
+        const createdTime = parsed.created_at ? new Date(parsed.created_at) : new Date();
+        const expiresTime = new Date(createdTime.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+        setCreatedAtFormatted(createdTime.toLocaleDateString('es-ES'));
+        setExpiresAtFormatted(expiresTime.toLocaleDateString('es-ES'));
+
+        const now = new Date();
+        const diffMs = expiresTime.getTime() - now.getTime();
+        const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+        setDaysRemaining(days);
+        if (days <= 0) {
+          setIsExpired(true);
+        }
       } catch (e) {
         setUser({ email: 'Creador Activo', slug: params?.creatorSlug || 'creador' });
       }
@@ -33,6 +54,37 @@ export default function CreatorSlugPage({ params }: { params: { creatorSlug?: st
     );
   }
 
+  // Pantalla de Bloqueo si la prueba venció
+  if (isExpired) {
+    return (
+      <div className="min-h-screen bg-[#080811] flex items-center justify-center p-4">
+        <div className="bg-[#0d0d1b] border border-rose-900/50 p-8 rounded-3xl max-w-md w-full text-center space-y-6 shadow-2xl">
+          <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/30 rounded-2xl mx-auto flex items-center justify-center text-3xl">
+            🔒
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-xl font-bold text-white">Periodo de Prueba Vencido</h1>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Tu periodo de prueba gratuito de 7 días ha finalizado. Para seguir accediendo a tu panel y gestionar tus contenidos en <strong className="text-purple-400">CreatorDesk</strong>, por favor renueva tu suscripción.
+            </p>
+          </div>
+          <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl text-xs text-slate-300">
+            Membresía actual: <span className="text-rose-400 font-bold">VENCIDO</span>
+          </div>
+          <button
+            onClick={() => {
+              localStorage.removeItem('creatordesk_user');
+              window.location.href = '/login';
+            }}
+            className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl transition"
+          >
+            Cerrar Sesión
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#080811] text-slate-100 p-6">
       <div className="max-w-5xl mx-auto space-y-6">
@@ -43,7 +95,7 @@ export default function CreatorSlugPage({ params }: { params: { creatorSlug?: st
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">Panel de Creador</h1>
-              <p className="text-xs text-slate-400">Ruta personalizada: /creatordesk/{user?.slug || 'creador'}</p>
+              <p className="text-xs text-slate-400">Espacio de trabajo activo</p>
             </div>
           </div>
           <button
@@ -61,7 +113,7 @@ export default function CreatorSlugPage({ params }: { params: { creatorSlug?: st
           <div className="bg-[#0d0d1b] border border-slate-800/80 p-5 rounded-2xl space-y-2">
             <span className="text-xs text-slate-400 font-medium">Estado de la cuenta</span>
             <div className="text-lg font-bold text-purple-400 uppercase">
-              {user?.subscription_status || 'PRUEBA (7 DÍAS)'}
+              PRUEBA ({daysRemaining} {daysRemaining === 1 ? 'DÍA' : 'DÍAS'})
             </div>
           </div>
 
