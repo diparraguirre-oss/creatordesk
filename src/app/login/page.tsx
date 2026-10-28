@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
 
 export default function LoginPage() {
   const [identifier, setIdentifier] = useState('');
@@ -19,6 +20,7 @@ export default function LoginPage() {
     try {
       const cleanInput = identifier.trim();
 
+      // 1. Confirmar/validar la cuenta mediante la API del servidor
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -33,14 +35,26 @@ export default function LoginPage() {
         return;
       }
 
-      // Guardar contexto local de sesión
+      // 2. Establecer la sesión oficial de Supabase en las cookies del cliente
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+      
+      if (supabaseUrl && supabaseAnonKey) {
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        await supabase.auth.signInWithPassword({
+          email: data.email,
+          password: password
+        });
+      }
+
+      // 3. Guardar estado en localStorage como respaldo
       localStorage.setItem('creatordesk_user', JSON.stringify({
         email: data.email,
         slug: data.slug,
         subscription_status: 'PRUEBA (7 DÍAS)'
       }));
 
-      // Redirigir directamente al espacio dinámico del creador
+      // 4. Redirigir al espacio dinámico
       window.location.href = `/creatordesk/${data.slug}`;
     } catch (err: any) {
       setErrorMsg('Error de conexión con el servidor.');
