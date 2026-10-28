@@ -10,9 +10,12 @@ export default function AdminDashboardPage() {
   const [creators, setCreators] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Modal de edición
+  // Modales
   const [selectedCreator, setSelectedCreator] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+
   const [selectedPlanDays, setSelectedPlanDays] = useState<number>(30);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -64,21 +67,33 @@ export default function AdminDashboardPage() {
     return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
-  // Acción: Eliminar Creador
-  const handleDeleteCreator = async (creator: any) => {
-    const confirmDelete = window.confirm(`¿Estás seguro de que deseas eliminar a "${creator.fullName}"? Esta acción no se puede deshacer.`);
-    if (!confirmDelete) return;
+  // 1. OJO: Inyectar sesión y abrir directamente
+  const handleViewCreatorSpace = (creator: any) => {
+    localStorage.setItem('creatordesk_user', JSON.stringify({
+      email: creator.email,
+      slug: creator.slug,
+      subscription_status: creator.subscriptionStatus,
+      created_at: creator.createdAt
+    }));
+    window.open(`/creatordesk/${creator.slug}`, '_blank');
+  };
 
+  // 2. ELIMINAR CREADOR
+  const handleConfirmDelete = async () => {
+    if (!selectedCreator) return;
     setActionLoading(true);
+
     try {
       const res = await fetch('/api/admin/creators/manage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delete', userId: creator.id })
+        body: JSON.stringify({ action: 'delete', userId: selectedCreator.id })
       });
 
       const data = await res.json();
       if (res.ok && data.success) {
+        setIsDeleteModalOpen(false);
+        setSelectedCreator(null);
         fetchCreators();
       } else {
         alert(data.error || 'Error al eliminar usuario.');
@@ -90,13 +105,7 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Abrir Modal de Edición
-  const handleOpenEditModal = (creator: any) => {
-    setSelectedCreator(creator);
-    setIsEditModalOpen(true);
-  };
-
-  // Guardar Membresía Actualizada
+  // 3. EDITAR MEMBRESÍA
   const handleSavePlan = async () => {
     if (!selectedCreator) return;
     setActionLoading(true);
@@ -122,6 +131,34 @@ export default function AdminDashboardPage() {
       }
     } catch (e) {
       alert('Error de red al actualizar membresía.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // 4. RESET DE CONTRASEÑA (LLAVE)
+  const handleConfirmResetPassword = async () => {
+    if (!selectedCreator) return;
+    setActionLoading(true);
+
+    try {
+      const res = await fetch('/api/admin/creators/manage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'resetPassword', userId: selectedCreator.id })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIsResetModalOpen(false);
+        setSelectedCreator(null);
+        fetchCreators();
+        alert('Contraseña restablecida con éxito a: Inicio01');
+      } else {
+        alert(data.error || 'Error al reiniciar contraseña.');
+      }
+    } catch (e) {
+      alert('Error de red al reiniciar contraseña.');
     } finally {
       setActionLoading(false);
     }
@@ -252,33 +289,39 @@ export default function AdminDashboardPage() {
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-center">
-                        <div className="flex items-center justify-center space-x-2">
-                          {/* Ojo: Ver Espacio */}
-                          <a
-                            href={`/creatordesk/${c.slug}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            title="Ver Espacio"
+                        <div className="flex items-center justify-center space-x-1.5">
+                          {/* 👁️ Ver Espacio sin pedir Login */}
+                          <button
+                            onClick={() => handleViewCreatorSpace(c)}
+                            title="Ver Espacio (Acceso Directo)"
                             className="p-2 bg-purple-900/40 hover:bg-purple-800/70 border border-purple-700/50 text-purple-200 rounded-xl transition shadow-sm text-sm"
                           >
                             👁️
-                          </a>
+                          </button>
 
-                          {/* Lápiz: Editar Membresía */}
+                          {/* ✏️ Editar Membresía */}
                           <button
-                            onClick={() => handleOpenEditModal(c)}
+                            onClick={() => { setSelectedCreator(c); setIsEditModalOpen(true); }}
                             title="Editar Membresía"
                             className="p-2 bg-indigo-900/40 hover:bg-indigo-800/70 border border-indigo-700/50 text-indigo-200 rounded-xl transition shadow-sm text-sm"
                           >
                             ✏️
                           </button>
 
-                          {/* Tacho: Eliminar Creador */}
+                          {/* 🔑 Reiniciar Contraseña */}
                           <button
-                            onClick={() => handleDeleteCreator(c)}
-                            disabled={actionLoading}
+                            onClick={() => { setSelectedCreator(c); setIsResetModalOpen(true); }}
+                            title="Reiniciar Contraseña a Inicio01"
+                            className="p-2 bg-amber-900/40 hover:bg-amber-800/70 border border-amber-700/50 text-amber-200 rounded-xl transition shadow-sm text-sm"
+                          >
+                            🔑
+                          </button>
+
+                          {/* 🗑️ Eliminar Creador con Modal */}
+                          <button
+                            onClick={() => { setSelectedCreator(c); setIsDeleteModalOpen(true); }}
                             title="Eliminar Registro"
-                            className="p-2 bg-rose-950/50 hover:bg-rose-900/80 border border-rose-800/60 text-rose-300 rounded-xl transition shadow-sm text-sm disabled:opacity-50"
+                            className="p-2 bg-rose-950/50 hover:bg-rose-900/80 border border-rose-800/60 text-rose-300 rounded-xl transition shadow-sm text-sm"
                           >
                             🗑️
                           </button>
@@ -293,25 +336,18 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Modal de Edición de Membresía */}
+      {/* 1. Modal Editar Membresía */}
       {isEditModalOpen && selectedCreator && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-[#0d0d1b] border border-purple-900/50 p-6 rounded-3xl max-w-sm w-full space-y-5 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h2 className="text-base font-bold text-white">Editar Membresía</h2>
-              <button
-                onClick={() => setIsEditModalOpen(false)}
-                className="text-slate-400 hover:text-white text-xs font-bold"
-              >
-                ✕
-              </button>
+              <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-white text-xs font-bold">✕</button>
             </div>
-
             <div className="space-y-1">
-              <span className="text-xs text-slate-400">Creador seleccionado:</span>
+              <span className="text-xs text-slate-400">Creador:</span>
               <p className="text-sm font-semibold text-purple-300">{selectedCreator.fullName}</p>
             </div>
-
             <div className="space-y-2">
               <label className="block text-xs font-semibold text-slate-300">Seleccionar Plan de Acceso</label>
               <select
@@ -325,20 +361,60 @@ export default function AdminDashboardPage() {
                 <option value={0}>Marcar como VENCIDO (Bloquear)</option>
               </select>
             </div>
-
             <div className="flex items-center justify-end space-x-2 pt-2">
-              <button
-                onClick={() => setIsEditModalOpen(false)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition"
-              >
+              <button onClick={() => setIsEditModalOpen(false)} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition">Cancelar</button>
+              <button onClick={handleSavePlan} disabled={actionLoading} className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 to-indigo-500 text-white font-bold text-xs rounded-xl transition shadow-md shadow-purple-900/40 disabled:opacity-50">
+                {actionLoading ? 'Guardando...' : 'Guardar Cambios'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. Modal Eliminar Creador */}
+      {isDeleteModalOpen && selectedCreator && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-[#0d0d1b] border border-rose-900/60 p-6 rounded-3xl max-w-sm w-full space-y-4 shadow-2xl text-center">
+            <div className="w-12 h-12 bg-rose-500/10 border border-rose-500/30 rounded-2xl mx-auto flex items-center justify-center text-2xl">
+              🗑️
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-base font-bold text-white">¿Eliminar Usuario?</h2>
+              <p className="text-xs text-slate-400">
+                ¿Estás seguro de que deseas eliminar a <strong className="text-rose-300">{selectedCreator.fullName}</strong>? Esta acción borra su cuenta permanentemente.
+              </p>
+            </div>
+            <div className="flex items-center justify-center space-x-3 pt-2">
+              <button onClick={() => setIsDeleteModalOpen(false)} className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition">
                 Cancelar
               </button>
-              <button
-                onClick={handleSavePlan}
-                disabled={actionLoading}
-                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl transition shadow-md shadow-purple-900/40 disabled:opacity-50"
-              >
-                {actionLoading ? 'Guardando...' : 'Guardar Cambios'}
+              <button onClick={handleConfirmDelete} disabled={actionLoading} className="w-full py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl transition shadow-md shadow-rose-900/40 disabled:opacity-50">
+                {actionLoading ? 'Eliminando...' : 'Sí, Eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Modal Reiniciar Contraseña (Llave) */}
+      {isResetModalOpen && selectedCreator && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-[#0d0d1b] border border-amber-900/60 p-6 rounded-3xl max-w-sm w-full space-y-4 shadow-2xl text-center">
+            <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/30 rounded-2xl mx-auto flex items-center justify-center text-2xl">
+              🔑
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-base font-bold text-white">Restablecer Contraseña</h2>
+              <p className="text-xs text-slate-400">
+                La contraseña de <strong className="text-amber-300">{selectedCreator.fullName}</strong> se reiniciará a <code className="bg-slate-900 px-1.5 py-0.5 rounded text-amber-400">Inicio01</code> y se le exigirá cambiarla al iniciar sesión.
+              </p>
+            </div>
+            <div className="flex items-center justify-center space-x-3 pt-2">
+              <button onClick={() => setIsResetModalOpen(false)} className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition">
+                Cancelar
+              </button>
+              <button onClick={handleConfirmResetPassword} disabled={actionLoading} className="w-full py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-xl transition shadow-md shadow-amber-900/40 disabled:opacity-50">
+                {actionLoading ? 'Procesando...' : 'Restablecer'}
               </button>
             </div>
           </div>

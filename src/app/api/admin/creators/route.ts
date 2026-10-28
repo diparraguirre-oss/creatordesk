@@ -29,24 +29,23 @@ export async function GET() {
       const rawName = prof?.full_name || u.user_metadata?.full_name || u.email?.split('@')[0] || 'Creador';
       const slug = rawName.toLowerCase().trim().replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '');
 
-      // Cálculo de Fechas
       const createdAtDate = new Date(u.created_at);
-      const expiresAtDate = new Date(createdAtDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+      
+      // Si tiene fecha de expiracion en metadata la usa, sino calcula 7 dias
+      let expiresAtDate = u.user_metadata?.expires_at ? new Date(u.user_metadata.expires_at) : new Date(createdAtDate.getTime() + 7 * 24 * 60 * 60 * 1000);
       
       const now = new Date();
       const diffMs = expiresAtDate.getTime() - now.getTime();
       const daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
-      let membershipStatus = '';
+      let membershipStatus = u.user_metadata?.subscription_status;
       let isExpired = false;
 
       if (daysRemaining <= 0) {
         membershipStatus = 'VENCIDO';
         isExpired = true;
-      } else if (daysRemaining === 1) {
-        membershipStatus = 'PRUEBA (1 DÍA)';
-      } else {
-        membershipStatus = `PRUEBA (${daysRemaining} DÍAS)`;
+      } else if (!membershipStatus || membershipStatus.includes('PRUEBA')) {
+        membershipStatus = daysRemaining === 1 ? 'PRUEBA (1 DÍA)' : `PRUEBA (${daysRemaining} DÍAS)`;
       }
 
       return {
@@ -59,7 +58,8 @@ export async function GET() {
         expiresAt: expiresAtDate.toISOString(),
         daysRemaining: daysRemaining,
         isExpired: isExpired,
-        subscriptionStatus: membershipStatus
+        subscriptionStatus: membershipStatus,
+        mustChangePassword: u.user_metadata?.must_change_password || false
       };
     });
 
