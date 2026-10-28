@@ -4,6 +4,32 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
 
+// Definición oficial de los 13 estados por etapas
+export const CAMPAIGN_STAGES = [
+  {
+    stage: 'Negociación',
+    icon: '📬',
+    statuses: ['Campaña Recibida', 'Campaña Aceptada', 'Campaña Cancelada']
+  },
+  {
+    stage: 'Pre-Producción',
+    icon: '📝',
+    statuses: ['Brief Recibido', 'Guión Enviado', 'Guión Aprobado', 'Guión Observado']
+  },
+  {
+    stage: 'Producción & Entrega',
+    icon: '🎬',
+    statuses: ['En Grabación', 'En Edición', 'Video Entregado', 'Video Aprobado', 'Video Observado', 'Video Publicado']
+  },
+  {
+    stage: 'Facturación & Cobro',
+    icon: '💵',
+    statuses: ['Factura Enviada', 'Factura por Cobrar', 'Factura Cobrada']
+  }
+];
+
+export const ALL_STATUSES = CAMPAIGN_STAGES.flatMap(s => s.statuses);
+
 export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?: string } }) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -12,16 +38,15 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [daysRemaining, setDaysRemaining] = useState<number>(7);
   const [activeTab, setActiveTab] = useState<'home' | 'colabs' | 'calendar' | 'tasks' | 'income' | 'mediakit'>('colabs');
 
-  // Filtro de Colaboraciones
-  const [colabFilter, setColabFilter] = useState<'todas' | 'activas' | 'aprobacion' | 'completadas'>('todas');
+  // Filtros de Colabs
+  const [colabFilter, setColabFilter] = useState<string>('todas');
   const [showNewColabModal, setShowNewColabModal] = useState(false);
 
-  // Formulario de Nueva Colaboración
+  // Formulario Nueva Colaboración
   const [brandName, setBrandName] = useState('');
   const [dealType, setDealType] = useState<'Pago' | 'Canje'>('Pago');
   const [currency, setCurrency] = useState<'USD' | 'PEN'>('USD');
   const [amount, setAmount] = useState('');
-  const [installments, setInstallments] = useState('1');
   const [paymentDays, setPaymentDays] = useState('30');
   const [deliverables, setDeliverables] = useState({ reels: 1, tiktoks: 0, stories: 2, posts: 0 });
 
@@ -42,12 +67,9 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       dealType: 'Pago',
       currency: 'USD',
       amount: 1500,
-      installments: 1,
       paymentDays: 30,
-      status: 'En Aprobación',
-      deliverables: '2 Reels, 3 Stories',
-      dueDate: '15/11/2026',
-      steps: { scriptSent: true, approved: false, published: false, paid: false }
+      status: 'Guión Enviado',
+      deliverables: '2 Reels, 3 Stories'
     },
     {
       id: '2',
@@ -55,12 +77,9 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       dealType: 'Canje',
       currency: 'PEN',
       amount: 0,
-      installments: 1,
       paymentDays: 0,
-      status: 'Activa',
-      deliverables: '1 TikTok, 1 Post',
-      dueDate: '20/11/2026',
-      steps: { scriptSent: true, approved: true, published: false, paid: false }
+      status: 'En Grabación',
+      deliverables: '1 TikTok, 1 Post'
     },
     {
       id: '3',
@@ -68,12 +87,9 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       dealType: 'Pago',
       currency: 'PEN',
       amount: 2200,
-      installments: 2,
       paymentDays: 15,
-      status: 'Completada',
-      deliverables: '1 Reel Unboxing',
-      dueDate: '02/11/2026',
-      steps: { scriptSent: true, approved: true, published: true, paid: true }
+      status: 'Factura Cobrada',
+      deliverables: '1 Reel Unboxing'
     }
   ]);
 
@@ -141,12 +157,9 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       dealType: dealType,
       currency: dealType === 'Pago' ? currency : 'PEN',
       amount: dealType === 'Pago' ? Number(amount) || 0 : 0,
-      installments: Number(installments),
       paymentDays: Number(paymentDays),
-      status: 'Activa',
-      deliverables: delivArray.join(', ') || 'Contenido personalizado',
-      dueDate: 'Pendiente',
-      steps: { scriptSent: false, approved: false, published: false, paid: false }
+      status: 'Campaña Recibida',
+      deliverables: delivArray.join(', ') || 'Contenido personalizado'
     };
 
     setColabs([newColabObj, ...colabs]);
@@ -155,10 +168,23 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     setAmount('');
   };
 
+  // Función para determinar en qué etapa (1, 2, 3 o 4) se encuentra un estado
+  const getStageIndex = (status: string) => {
+    if (CAMPAIGN_STAGES[0].statuses.includes(status)) return 0;
+    if (CAMPAIGN_STAGES[1].statuses.includes(status)) return 1;
+    if (CAMPAIGN_STAGES[2].statuses.includes(status)) return 2;
+    if (CAMPAIGN_STAGES[3].statuses.includes(status)) return 3;
+    return 0;
+  };
+
+  const handleStatusChange = (colabId: string, newStatus: string) => {
+    setColabs(colabs.map(c => c.id === colabId ? { ...c, status: newStatus } : c));
+  };
+
   const filteredColabs = colabs.filter(c => {
-    if (colabFilter === 'activas') return c.status === 'Activa';
-    if (colabFilter === 'aprobacion') return c.status === 'En Aprobación';
-    if (colabFilter === 'completadas') return c.status === 'Completada';
+    if (colabFilter === 'todas') return true;
+    if (colabFilter === 'activas') return c.status !== 'Factura Cobrada' && c.status !== 'Campaña Cancelada';
+    if (colabFilter === 'cobradas') return c.status === 'Factura Cobrada';
     return true;
   });
 
@@ -229,7 +255,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
       <main className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
         
-        {/* PESTAÑA HOME */}
+        {/* HOME */}
         {activeTab === 'home' && (
           <div className="space-y-6">
             <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-1.5 shadow-xl shadow-purple-100/50">
@@ -298,13 +324,13 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           </div>
         )}
 
-        {/* PESTAÑA COLABS COMPLETA */}
+        {/* PESTAÑA COLABS CON FLUJO DE 13 ESTADOS */}
         {activeTab === 'colabs' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold text-slate-800">Gestión de Colaboraciones</h2>
-                <p className="text-xs text-slate-500">Administra todos tus acuerdos comerciales con marcas en un solo lugar.</p>
+                <p className="text-xs text-slate-500">Haz seguimiento al estado exacto de tus campañas de inicio a fin.</p>
               </div>
               <button
                 onClick={() => setShowNewColabModal(true)}
@@ -314,73 +340,115 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               </button>
             </div>
 
-            {/* Filtros de estado */}
+            {/* Filtros */}
             <div className="flex items-center space-x-2 bg-white/80 p-1.5 rounded-2xl border border-white/60 shadow-sm w-fit">
-              {(['todas', 'activas', 'aprobacion', 'completadas'] as const).map((filterKey) => (
+              {[
+                { key: 'todas', label: 'Todas' },
+                { key: 'activas', label: 'En Curso' },
+                { key: 'cobradas', label: 'Cobradas' }
+              ].map((f) => (
                 <button
-                  key={filterKey}
-                  onClick={() => setColabFilter(filterKey)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition capitalize ${
-                    colabFilter === filterKey
+                  key={f.key}
+                  onClick={() => setColabFilter(f.key)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+                    colabFilter === f.key
                       ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-sm'
                       : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  {filterKey === 'aprobacion' ? 'En Aprobación' : filterKey}
+                  {f.label}
                 </button>
               ))}
             </div>
 
-            {/* Lista de tarjetas de colaboración */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredColabs.map((c) => (
-                <div key={c.id} className="bg-white/80 backdrop-blur-xl border border-white/60 p-5 rounded-2xl space-y-4 shadow-xl shadow-purple-100/30">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <span className="font-extrabold text-slate-800 text-sm">{c.brand}</span>
-                    <span className="px-2.5 py-1 bg-purple-100 border border-purple-200 text-purple-700 rounded-lg text-[10px] font-bold">
-                      {c.status}
-                    </span>
-                  </div>
+            {/* Tarjetas de Campaña */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {filteredColabs.map((c) => {
+                const currentStageIdx = getStageIndex(c.status);
 
-                  <div className="space-y-1.5 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Tipo de Acuerdo:</span>
-                      <strong className={c.dealType === 'Canje' ? 'text-pink-600' : 'text-purple-600'}>
-                        {c.dealType}
-                      </strong>
+                return (
+                  <div key={c.id} className="bg-white/80 backdrop-blur-xl border border-white/60 p-5 rounded-3xl space-y-4 shadow-xl shadow-purple-100/30">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                      <div>
+                        <span className="font-extrabold text-slate-800 text-base">{c.brand}</span>
+                        <div className="text-[11px] text-slate-500">{c.deliverables}</div>
+                      </div>
+
+                      <span className="px-3 py-1 bg-purple-100 border border-purple-200 text-purple-700 rounded-xl text-xs font-extrabold shadow-sm">
+                        {c.status}
+                      </span>
                     </div>
 
-                    {c.dealType === 'Pago' && (
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Monto del Contrato:</span>
-                        <strong className="text-emerald-600 font-extrabold">
-                          {c.currency === 'USD' ? `$ ${c.amount}` : `S/ ${c.amount}`}
+                    <div className="grid grid-cols-2 gap-2 text-xs p-3 bg-slate-50/80 rounded-2xl border border-slate-100">
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">Acuerdo:</span>
+                        <strong className={c.dealType === 'Canje' ? 'text-pink-600' : 'text-purple-600'}>
+                          {c.dealType}
                         </strong>
                       </div>
-                    )}
 
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Entregables:</span>
-                      <span className="text-slate-800 font-medium">{c.deliverables}</span>
+                      {c.dealType === 'Pago' && (
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">Monto:</span>
+                          <strong className="text-emerald-600 font-extrabold">
+                            {c.currency === 'USD' ? `$ ${c.amount}` : `S/ ${c.amount}`}
+                          </strong>
+                        </div>
+                      )}
                     </div>
 
-                    {c.dealType === 'Pago' && (
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Plazo de Pago:</span>
-                        <span className="text-slate-700 font-mono">{c.paymentDays} Días ({c.installments} cuota/s)</span>
+                    {/* Stepper Pipeline de 4 Etapas */}
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 px-1">
+                        {CAMPAIGN_STAGES.map((stg, idx) => (
+                          <div
+                            key={stg.stage}
+                            className={`flex items-center space-x-1 ${
+                              idx <= currentStageIdx ? 'text-purple-600 font-black' : 'text-slate-300'
+                            }`}
+                          >
+                            <span>{stg.icon}</span>
+                            <span className="hidden sm:inline">{stg.stage}</span>
+                          </div>
+                        ))}
                       </div>
-                    )}
-                  </div>
 
-                  {/* Pasos de avance */}
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500">
-                    <span className={c.steps?.scriptSent ? 'text-emerald-600 font-bold' : ''}>1. Guión</span>
-                    <span className={c.steps?.approved ? 'text-emerald-600 font-bold' : ''}>2. Aprobado</span>
-                    <span className={c.steps?.published ? 'text-emerald-600 font-bold' : ''}>3. Publicado</span>
-                    <span className={c.steps?.paid ? 'text-emerald-600 font-bold' : ''}>4. Cobrado</span>
+                      <div className="grid grid-cols-4 gap-1 h-2 bg-slate-100 rounded-full overflow-hidden p-0.5">
+                        {CAMPAIGN_STAGES.map((_, idx) => (
+                          <div
+                            key={idx}
+                            className={`h-full rounded-full transition-all duration-300 ${
+                              idx <= currentStageIdx ? 'bg-gradient-to-r from-purple-500 to-pink-500' : 'bg-slate-200'
+                            }`}
+                          ></div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Selector de Estado Completo */}
+                    <div className="pt-2">
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1">
+                        Actualizar Estado de la Campaña:
+                      </label>
+                      <select
+                        value={c.status}
+                        onChange={(e) => handleStatusChange(c.id, e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-purple-400"
+                      >
+                        {CAMPAIGN_STAGES.map((stg) => (
+                          <optgroup key={stg.stage} label={`${stg.icon} ${stg.stage}`}>
+                            {stg.statuses.map((st) => (
+                              <option key={st} value={st}>
+                                {st}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -433,7 +501,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
       </main>
 
-      {/* Modal para Crear Nueva Colaboración */}
+      {/* Modal Nueva Colaboración */}
       {showNewColabModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-5 shadow-2xl border border-purple-100 my-8">
@@ -455,7 +523,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 />
               </div>
 
-              {/* Tipo de Acuerdo: Pago o Canje */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Tipo de Acuerdo</label>
                 <div className="grid grid-cols-2 gap-2">
@@ -484,7 +551,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 </div>
               </div>
 
-              {/* Opciones de Pago (Moneda y Monto) */}
               {dealType === 'Pago' && (
                 <div className="space-y-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
                   <div>
@@ -526,52 +592,8 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                       className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-400"
                     />
                   </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Días de Pago Acordados</label>
-                    <div className="flex items-center gap-1.5">
-                      {['15', '30', '45', '60', '90'].map((d) => (
-                        <button
-                          key={d}
-                          type="button"
-                          onClick={() => setPaymentDays(d)}
-                          className={`flex-1 py-1 rounded-lg text-[11px] font-bold transition border ${
-                            paymentDays === d
-                              ? 'bg-purple-600 text-white border-purple-600'
-                              : 'bg-white text-slate-600 border-slate-200'
-                          }`}
-                        >
-                          {d}d
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                 </div>
               )}
-
-              {/* Entregables */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-2">Contenidos a Entregar</label>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
-                    <span>🎬 Reels</span>
-                    <div className="flex items-center space-x-1">
-                      <button type="button" onClick={() => setDeliverables({ ...deliverables, reels: Math.max(0, deliverables.reels - 1) })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">-</button>
-                      <span className="font-bold px-1">{deliverables.reels}</span>
-                      <button type="button" onClick={() => setDeliverables({ ...deliverables, reels: deliverables.reels + 1 })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">+</button>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
-                    <span>🎵 TikToks</span>
-                    <div className="flex items-center space-x-1">
-                      <button type="button" onClick={() => setDeliverables({ ...deliverables, tiktoks: Math.max(0, deliverables.tiktoks - 1) })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">-</button>
-                      <span className="font-bold px-1">{deliverables.tiktoks}</span>
-                      <button type="button" onClick={() => setDeliverables({ ...deliverables, tiktoks: deliverables.tiktoks + 1 })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">+</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
               <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100">
                 <button
