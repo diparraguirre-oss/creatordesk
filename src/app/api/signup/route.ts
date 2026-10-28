@@ -15,7 +15,6 @@ export async function POST(req: Request) {
     const cleanInput = String(rawIdentifier).trim();
     const isEmail = cleanInput.includes('@');
     const cleanPhone = cleanInput.replace(/\D/g, '');
-
     const emailToAuth = isEmail ? cleanInput : `phone_${cleanPhone}@creatordesk.app`;
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -29,7 +28,7 @@ export async function POST(req: Request) {
       auth: { persistSession: false }
     });
 
-    // Crear usuario en Auth confirmando el correo de inmediato
+    // 1. Crear usuario con confirmación explícita
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: emailToAuth,
       password: password,
@@ -42,11 +41,15 @@ export async function POST(req: Request) {
     }
 
     const userId = authData.user.id;
+
+    // Forzar actualización para garantizar email_confirm
+    await supabaseAdmin.auth.admin.updateUserById(userId, { email_confirm: true });
+
     const trialEnds = new Date();
     trialEnds.setDate(trialEnds.getDate() + 7);
 
-    // Insertar en la tabla profiles
-    const { error: profileError } = await supabaseAdmin
+    // 2. Insertar en profiles
+    await supabaseAdmin
       .from('profiles')
       .upsert({
         id: userId,
@@ -55,10 +58,6 @@ export async function POST(req: Request) {
         subscription_status: 'trial',
         trial_ends_at: trialEnds.toISOString()
       });
-
-    if (profileError) {
-      return NextResponse.json({ error: profileError.message }, { status: 400 });
-    }
 
     return NextResponse.json({ success: true, userId });
   } catch (err: any) {
