@@ -26,7 +26,6 @@ export async function POST(req: Request) {
     }
 
     if (action === 'updatePlan') {
-      // Obtener metadata actual del usuario para conservar los días remanentes
       const { data: userData, error: getUserErr } = await supabaseAdmin.auth.admin.getUserById(userId);
       if (getUserErr || !userData.user) {
         return NextResponse.json({ error: 'Usuario no encontrado.' }, { status: 404 });
@@ -34,11 +33,14 @@ export async function POST(req: Request) {
 
       const now = new Date();
       const currentMetadata = userData.user.user_metadata || {};
-      
-      // Fecha de vencimiento actual (si existe y aún no vence, se toma como base)
-      let currentExpiration = currentMetadata.expires_at ? new Date(currentMetadata.expires_at) : new Date(userData.user.created_at);
-      
-      // Si la membresía previa ya venció, se parte desde la fecha de hoy
+      const createdAtDate = new Date(userData.user.created_at);
+
+      // La fecha de vencimiento previa es expires_at registrado O createdAt + 7 días
+      let currentExpiration = currentMetadata.expires_at 
+        ? new Date(currentMetadata.expires_at) 
+        : new Date(createdAtDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+      // Si la fecha de vencimiento previa aún no ha expirado, se usa como base para acumular
       let baseDate = (currentExpiration.getTime() > now.getTime()) ? currentExpiration : now;
 
       let expiresAt = new Date(baseDate);
@@ -48,7 +50,6 @@ export async function POST(req: Request) {
       } else if (planDays === 60) {
         expiresAt = new Date(baseDate.getTime() + 60 * 24 * 60 * 60 * 1000);
       } else if (planDays === 7) {
-        // En caso de querer resetearlo a prueba de 7 días desde hoy
         expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
       } else if (planDays === 0) {
         expiresAt = new Date(now.getTime() - 1000);
