@@ -11,7 +11,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Modal obligatoria para cambiar contraseña
+  // Modal para cambio obligatorio de contraseña
   const [showChangeModal, setShowChangeModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -39,7 +39,7 @@ export default function LoginPage() {
         return;
       }
 
-      // Si requiere cambio obligatorio de contraseña (clave temporal Inicio01)
+      // Si requiere cambio de contraseña
       if (data.user?.user_metadata?.must_change_password) {
         setUserIdToChange(data.user.id);
         setPendingUserObj(data);
@@ -48,7 +48,6 @@ export default function LoginPage() {
         return;
       }
 
-      // Iniciar Sesion normal
       localStorage.setItem('creatordesk_user', JSON.stringify({
         email: data.user.email || identifier,
         slug: data.slug,
@@ -80,17 +79,23 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/admin/creators/manage', {
+      const res = await fetch('/api/change-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'updatePlan',
           userId: userIdToChange,
-          planDays: 7
+          newPassword: newPassword
         })
       });
 
-      // Guardar contexto local e ingresar
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        setChangeError(data.error || 'Error al actualizar contraseña.');
+        setLoading(false);
+        return;
+      }
+
       if (pendingUserObj) {
         localStorage.setItem('creatordesk_user', JSON.stringify({
           email: pendingUserObj.user.email || identifier,
@@ -101,7 +106,7 @@ export default function LoginPage() {
         window.location.href = `/creatordesk/${pendingUserObj.slug}`;
       }
     } catch (err: any) {
-      setChangeError('Error al actualizar contraseña.');
+      setChangeError('Error de red al actualizar contraseña.');
       setLoading(false);
     }
   };
@@ -172,7 +177,7 @@ export default function LoginPage() {
         </p>
       </div>
 
-      {/* Modal Obligatorio de Cambio de Contraseña */}
+      {/* Modal de Actualización de Contraseña */}
       {showChangeModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-4 shadow-2xl border border-purple-100">
@@ -182,7 +187,7 @@ export default function LoginPage() {
             <div className="text-center space-y-1">
               <h2 className="text-base font-bold text-slate-800">Actualiza tu Contraseña</h2>
               <p className="text-xs text-slate-500">
-                Tu contraseña fue restablecida por el administrador. Ingresa tu nueva clave personal.
+                Tu contraseña fue restablecida por el administrador. Ingresa tu nueva clave personal para continuar.
               </p>
             </div>
 

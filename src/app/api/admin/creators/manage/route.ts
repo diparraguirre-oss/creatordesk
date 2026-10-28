@@ -16,7 +16,6 @@ export async function POST(req: Request) {
       auth: { persistSession: false }
     });
 
-    // 1. ELIMINAR CREADOR
     if (action === 'delete') {
       const { error: delErr } = await supabaseAdmin.auth.admin.deleteUser(userId);
       if (delErr) {
@@ -26,16 +25,30 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, message: 'Creador eliminado exitosamente.' });
     }
 
-    // 2. ACTUALIZAR PLAN / MEMBRESÍA
     if (action === 'updatePlan') {
+      // Obtener metadata actual del usuario para conservar los días remanentes
+      const { data: userData, error: getUserErr } = await supabaseAdmin.auth.admin.getUserById(userId);
+      if (getUserErr || !userData.user) {
+        return NextResponse.json({ error: 'Usuario no encontrado.' }, { status: 404 });
+      }
+
       const now = new Date();
-      let expiresAt = new Date();
+      const currentMetadata = userData.user.user_metadata || {};
+      
+      // Fecha de vencimiento actual (si existe y aún no vence, se toma como base)
+      let currentExpiration = currentMetadata.expires_at ? new Date(currentMetadata.expires_at) : new Date(userData.user.created_at);
+      
+      // Si la membresía previa ya venció, se parte desde la fecha de hoy
+      let baseDate = (currentExpiration.getTime() > now.getTime()) ? currentExpiration : now;
+
+      let expiresAt = new Date(baseDate);
 
       if (planDays === 30) {
-        expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        expiresAt = new Date(baseDate.getTime() + 30 * 24 * 60 * 60 * 1000);
       } else if (planDays === 60) {
-        expiresAt = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
+        expiresAt = new Date(baseDate.getTime() + 60 * 24 * 60 * 60 * 1000);
       } else if (planDays === 7) {
+        // En caso de querer resetearlo a prueba de 7 días desde hoy
         expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
       } else if (planDays === 0) {
         expiresAt = new Date(now.getTime() - 1000);
@@ -43,9 +56,9 @@ export async function POST(req: Request) {
 
       const statusText = customStatus || (planDays === 30 ? 'PLAN 30 DÍAS' : planDays === 60 ? 'PLAN 60 DÍAS' : planDays === 0 ? 'VENCIDO' : 'PRUEBA (7 DÍAS)');
 
-      // Actualizar metadata del usuario sin requerir columna extra en Postgres
       const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(userId, {
         user_metadata: {
+          ...currentMetadata,
           subscription_status: statusText,
           expires_at: expiresAt.toISOString()
         }
@@ -58,11 +71,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, message: 'Membresía actualizada con éxito.' });
     }
 
-    // 3. RESET DE CONTRASEÑA A "Inicio01"
     if (action === 'resetPassword') {
+      const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
+      const currentMetadata = userData?.user?.user_metadata || {};
+
       const { error: resetErr } = await supabaseAdmin.auth.admin.updateUserById(userId, {
         password: 'Inicio01',
-        user_metadata: { must_change_password: true }
+        user_metadata: {
+          ...currentMetadata,
+          must_change_password: true
+        }
       });
 
       if (resetErr) {
