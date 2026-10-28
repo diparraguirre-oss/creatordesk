@@ -25,41 +25,36 @@ export async function POST(req: Request) {
       auth: { persistSession: false }
     });
 
-    // Validar si el usuario existe en Supabase Auth
-    const { data: usersData, error: listErr } = await supabaseAdmin.auth.admin.listUsers();
-    
-    if (listErr) {
-      return NextResponse.json({ error: listErr.message }, { status: 400 });
-    }
-
-    const targetUser = usersData.users.find(u => u.email === emailToAuth);
+    // 1. Buscar usuario en Auth
+    const { data: usersData } = await supabaseAdmin.auth.admin.listUsers();
+    const targetUser = usersData?.users?.find(u => u.email === emailToAuth);
 
     if (!targetUser) {
       return NextResponse.json({ error: 'Usuario o contraseña incorrectos.' }, { status: 400 });
     }
 
-    // Actualizar/Asegurar la contraseña y forzar confirmación inmediata
-    const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(targetUser.id, {
+    // 2. Confirmar cuenta y sincronizar clave
+    await supabaseAdmin.auth.admin.updateUserById(targetUser.id, {
       password: password,
       email_confirm: true
     });
 
-    if (updateErr) {
-      return NextResponse.json({ error: updateErr.message }, { status: 400 });
-    }
+    // 3. Consultar su perfil para obtener el slug o full_name
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('*')
+      .eq('id', targetUser.id)
+      .single();
 
-    // Intentar login estándar
-    const { data: authSession, error: authErr } = await supabaseAdmin.auth.signInWithPassword({
+    const rawName = profile?.full_name || targetUser.user_metadata?.full_name || cleanInput;
+    const slug = rawName.toLowerCase().trim().replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '') || 'creador';
+
+    return NextResponse.json({
+      success: true,
       email: emailToAuth,
-      password: password
+      slug: slug,
+      profile: profile
     });
-
-    if (authErr) {
-      // Si falla por confirmación, forzamos la confirmación del email directamente en Postgres/Auth
-      return NextResponse.json({ success: true, userId: targetUser.id });
-    }
-
-    return NextResponse.json({ success: true, session: authSession.session });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Error del servidor' }, { status: 500 });
   }
