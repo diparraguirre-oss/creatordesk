@@ -13,32 +13,99 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // 1. Validar Nombre y Apellido (Sin espacios)
+  const handleFirstNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const cleanValue = e.target.value.replace(/\s/g, '');
+    setFirstName(cleanValue);
+  };
+
+  const handleLastNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const cleanValue = e.target.value.replace(/\s/g, '');
+    setLastName(cleanValue);
+  };
+
+  // 2. Controlar entrada de celular o correo
+  const handleIdentifierChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    const isOnlyNumbers = /^\d*$/.test(val);
+
+    if (isOnlyNumbers) {
+      // Si son números, limitar a un máximo estricto de 9 dígitos
+      if (val.length <= 9) {
+        setIdentifier(val);
+      }
+    } else {
+      setIdentifier(val);
+    }
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setErrorMsg('');
+
+    const cleanInput = identifier.trim();
+    const isNumeric = /^\d+$/.test(cleanInput);
+
+    // Validaciones estrictas antes de enviar
+    if (!firstName || !lastName) {
+      setErrorMsg('Por favor ingresa tu nombre y apellido.');
+      return;
+    }
+
+    if (isNumeric) {
+      if (cleanInput.length !== 9) {
+        setErrorMsg('El número de celular debe tener exactamente 9 dígitos.');
+        return;
+      }
+    } else {
+      // Validar formato estricto de correo electrónico
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(cleanInput)) {
+        setErrorMsg('Formato de correo incorrecto. Debe incluir "@" y un dominio válido (ej. correo@dominio.com).');
+        return;
+      }
+    }
+
+    if (password.length < 6) {
+      setErrorMsg('La contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+
+    setLoading(true);
 
     try {
       const res = await fetch('/api/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fullName: `${firstName.trim()} ${lastName.trim()}`.trim(),
-          identifier: identifier.trim(),
-          password: password
+          firstName,
+          lastName,
+          identifier: cleanInput,
+          password
         })
       });
 
       const data = await res.json();
 
       if (!res.ok || data.error) {
-        setErrorMsg(data.error || 'Error al crear la cuenta.');
-      } else {
-        window.location.href = '/login';
+        setErrorMsg(data.error || 'Error al registrar la cuenta.');
+        setLoading(false);
+        return;
       }
+
+      const slug = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`;
+
+      // Guardar contexto local
+      localStorage.setItem('creatordesk_user', JSON.stringify({
+        email: data.email || cleanInput,
+        slug: slug,
+        subscription_status: 'PRUEBA (7 DÍAS)'
+      }));
+
+      // Redirigir al espacio dinámico
+      window.location.href = `/creatordesk/${slug}`;
     } catch (err: any) {
       setErrorMsg('Error de conexión con el servidor.');
-    } finally {
       setLoading(false);
     }
   };
@@ -67,8 +134,9 @@ export default function SignupPage() {
               <input
                 type="text"
                 required
+                placeholder="Un solo nombre"
                 value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
+                onChange={handleFirstNameChange}
                 className="w-full px-3.5 py-2.5 bg-slate-50/80 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-400 focus:bg-white transition"
               />
             </div>
@@ -77,8 +145,9 @@ export default function SignupPage() {
               <input
                 type="text"
                 required
+                placeholder="Un solo apellido"
                 value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
+                onChange={handleLastNameChange}
                 className="w-full px-3.5 py-2.5 bg-slate-50/80 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-400 focus:bg-white transition"
               />
             </div>
@@ -89,8 +158,9 @@ export default function SignupPage() {
             <input
               type="text"
               required
+              placeholder="9 dígitos o correo@ejemplo.com"
               value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
+              onChange={handleIdentifierChange}
               className="w-full px-3.5 py-2.5 bg-slate-50/80 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-400 focus:bg-white transition"
             />
           </div>
@@ -101,6 +171,7 @@ export default function SignupPage() {
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
+                placeholder="Mínimo 6 caracteres"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-3.5 py-2.5 pr-10 bg-slate-50/80 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-400 focus:bg-white transition"
