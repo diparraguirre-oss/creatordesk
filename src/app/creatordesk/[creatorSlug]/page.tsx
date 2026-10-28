@@ -16,7 +16,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [pendingTask, setPendingTask] = useState<any>(null);
   const [showTaskConfirmModal, setShowTaskConfirmModal] = useState(false);
 
-  // Lista de tareas con estado completado permanente
+  // Lista de tareas
   const [tasks, setTasks] = useState([
     { id: 't1', title: 'Enviar guión para aprobación a Adidas', brand: 'Adidas', status: 'pendiente', category: 'Grabar' },
     { id: 't2', title: 'Grabar video de unboxing cosméticos', brand: 'Aurelia', status: 'pendiente', category: 'Grabar' },
@@ -64,14 +64,12 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     setLoading(false);
   }, [params?.creatorSlug]);
 
-  // Manejo de clic en checkbox de tarea
   const handleTaskCheckboxClick = (task: any) => {
-    if (task.status === 'completada') return; // Impedir acción si ya está completada
+    if (task.status === 'completada') return;
     setPendingTask(task);
     setShowTaskConfirmModal(true);
   };
 
-  // Confirmar finalización de la tarea
   const handleConfirmTaskDone = () => {
     if (!pendingTask) return;
     setTasks(tasks.map(t => t.id === pendingTask.id ? { ...t, status: 'completada' } : t));
@@ -116,7 +114,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-indigo-100 text-slate-800 pb-28">
-      {/* Header */}
       <header className="sticky top-0 z-40 bg-white/70 backdrop-blur-xl border-b border-purple-100/60 px-6 py-4 shadow-sm">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -145,12 +142,10 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         </div>
       </header>
 
-      {/* Contenido Principal */}
       <main className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
         
         {activeTab === 'home' && (
           <div className="space-y-6">
-            {/* Saludo */}
             <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-1.5 shadow-xl shadow-purple-100/50">
               <h2 className="text-2xl font-black text-slate-800">¡Hola, {displayName}! 👋</h2>
               <p className="text-xs text-slate-500 leading-relaxed">
@@ -158,7 +153,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               </p>
             </div>
 
-            {/* Tarjetas de Métricas */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-5 rounded-2xl space-y-2 shadow-lg shadow-purple-100/30">
                 <span className="text-xs text-slate-500 font-semibold">💰 Total Cobrado (Este Mes)</span>
@@ -179,11 +173,11 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               </div>
             </div>
 
-            {/* Módulo Tareas Prioritarias con ícono alineado */}
+            {/* Alineación perfecta ajustando px-3.5 para coincidir con las tarjetas inferiores */}
             <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-2xl space-y-4 shadow-xl shadow-purple-100/40">
-              <div className="flex items-center justify-between pl-3.5 pr-1">
-                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2.5">
-                  <span className="text-base">✅</span>
+              <div className="flex items-center justify-between px-3.5">
+                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-3">
+                  <span className="text-sm leading-none">✅</span>
                   <span>Tareas Prioritarias de Hoy</span>
                 </h3>
                 <button
@@ -219,7 +213,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           </div>
         )}
 
-        {/* MÁS SECCIONES DEL PANEL */}
+        {/* OTRAS PESTAÑAS */}
         {activeTab === 'colabs' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -289,7 +283,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
       </main>
 
-      {/* Pop-up de Confirmación de Tarea */}
+      {/* Pop-up de Confirmación de Tarea Ajustado a Uso Personal del Creador */}
       {showTaskConfirmModal && pendingTask && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-3xl max-w-sm w-full text-center space-y-4 shadow-2xl border border-purple-100">
@@ -299,7 +293,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
             <div className="space-y-1">
               <h2 className="text-base font-bold text-slate-800">¿Marcar Tarea como Realizada?</h2>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Confirmas que has completado la tarea: <strong className="text-slate-700">"{pendingTask.title}"</strong>. Una vez confirmada, la marca sabrá que avanzaste.
+                Confirmas que has completado la tarea: <strong className="text-slate-700">"{pendingTask.title}"</strong>. Una vez confirmada, quedará registrada como completada en tu panel personal.
               </p>
             </div>
             <div className="flex items-center justify-center space-x-2 pt-1">
