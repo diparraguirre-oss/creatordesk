@@ -9,7 +9,6 @@ export default function CreatorSlugPage({ params }: { params: { creatorSlug?: st
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    // 1. Leer sesión desde localStorage para prevenir redirección al login
     const localUser = localStorage.getItem('creatordesk_user');
 
     if (localUser) {
@@ -19,7 +18,6 @@ export default function CreatorSlugPage({ params }: { params: { creatorSlug?: st
         setUser({ email: 'Creador Activo', slug: params?.creatorSlug || 'creador' });
       }
     } else {
-      // Si realmente no hay nada en localStorage, redirigimos limpiamente
       window.location.href = '/login';
       return;
     }
