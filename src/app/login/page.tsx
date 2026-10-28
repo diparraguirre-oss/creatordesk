@@ -3,7 +3,6 @@
 export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
 
 export default function LoginPage() {
   const [identifier, setIdentifier] = useState('');
@@ -19,41 +18,28 @@ export default function LoginPage() {
 
     try {
       const cleanInput = identifier.trim();
-      const isEmail = cleanInput.includes('@');
-      const cleanPhone = cleanInput.replace(/\D/g, '');
-      const emailToAuth = isEmail ? cleanInput : `phone_${cleanPhone}@creatordesk.app`;
 
-      // Primero aseguramos la confirmación del usuario via API del servidor
-      const apiRes = await fetch('/api/login', {
+      const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier: cleanInput, password })
       });
 
-      const apiData = await apiRes.json();
+      const data = await res.json();
 
-      if (!apiRes.ok || apiData.error) {
-        setErrorMsg(apiData.error || 'Credenciales inválidas.');
+      if (!res.ok || data.error) {
+        setErrorMsg(data.error || 'Credenciales inválidas.');
         setLoading(false);
         return;
       }
 
-      // Iniciar sesión en el navegador para establecer las cookies persistentes
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+      // Guardar sesión en el cliente y navegar
+      localStorage.setItem('creatordesk_user', JSON.stringify({
+        email: cleanInput.includes('@') ? cleanInput : `phone_${cleanInput.replace(/\D/g, '')}@creatordesk.app`,
+        subscription_status: 'PRUEBA (7 DÍAS)'
+      }));
 
-      const { error: authErr } = await supabase.auth.signInWithPassword({
-        email: emailToAuth,
-        password: password
-      });
-
-      if (authErr) {
-        // Fallback por si la sesion del servidor ya es suficiente
-        window.location.href = '/dashboard';
-      } else {
-        window.location.href = '/dashboard';
-      }
+      window.location.href = '/dashboard';
     } catch (err: any) {
       setErrorMsg('Error de conexión con el servidor.');
       setLoading(false);
