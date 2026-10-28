@@ -12,25 +12,23 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  // 1. Validar Nombre y Apellido (Sin espacios)
+  // 1. Sin espacios en Nombre y Apellido
   const handleFirstNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const cleanValue = e.target.value.replace(/\s/g, '');
-    setFirstName(cleanValue);
+    setFirstName(e.target.value.replace(/\s/g, ''));
   };
 
   const handleLastNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const cleanValue = e.target.value.replace(/\s/g, '');
-    setLastName(cleanValue);
+    setLastName(e.target.value.replace(/\s/g, ''));
   };
 
-  // 2. Controlar entrada de celular o correo
+  // 2. Controlar cel de 9 digitos o correo
   const handleIdentifierChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     const isOnlyNumbers = /^\d*$/.test(val);
 
     if (isOnlyNumbers) {
-      // Si son números, limitar a un máximo estricto de 9 dígitos
       if (val.length <= 9) {
         setIdentifier(val);
       }
@@ -46,7 +44,6 @@ export default function SignupPage() {
     const cleanInput = identifier.trim();
     const isNumeric = /^\d+$/.test(cleanInput);
 
-    // Validaciones estrictas antes de enviar
     if (!firstName || !lastName) {
       setErrorMsg('Por favor ingresa tu nombre y apellido.');
       return;
@@ -58,10 +55,9 @@ export default function SignupPage() {
         return;
       }
     } else {
-      // Validar formato estricto de correo electrónico
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(cleanInput)) {
-        setErrorMsg('Formato de correo incorrecto. Debe incluir "@" y un dominio válido (ej. correo@dominio.com).');
+        setErrorMsg('Formato de correo incorrecto. Debe incluir "@" y un dominio válido.');
         return;
       }
     }
@@ -93,17 +89,9 @@ export default function SignupPage() {
         return;
       }
 
-      const slug = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`;
-
-      // Guardar contexto local
-      localStorage.setItem('creatordesk_user', JSON.stringify({
-        email: data.email || cleanInput,
-        slug: slug,
-        subscription_status: 'PRUEBA (7 DÍAS)'
-      }));
-
-      // Redirigir al espacio dinámico
-      window.location.href = `/creatordesk/${slug}`;
+      setLoading(false);
+      // Desplegar Modal de Bienvenida
+      setShowSuccessModal(true);
     } catch (err: any) {
       setErrorMsg('Error de conexión con el servidor.');
       setLoading(false);
@@ -111,7 +99,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-indigo-100 flex items-center justify-center p-4 relative">
       <div className="w-full max-w-md bg-white/80 backdrop-blur-xl border border-white/60 p-8 rounded-3xl shadow-xl space-y-6">
         <div className="text-center space-y-2">
           <div className="w-12 h-12 bg-gradient-to-tr from-purple-500 to-pink-500 rounded-2xl mx-auto flex items-center justify-center font-black text-white text-base shadow-md shadow-purple-200">
@@ -134,7 +122,6 @@ export default function SignupPage() {
               <input
                 type="text"
                 required
-                placeholder="Un solo nombre"
                 value={firstName}
                 onChange={handleFirstNameChange}
                 className="w-full px-3.5 py-2.5 bg-slate-50/80 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-400 focus:bg-white transition"
@@ -145,7 +132,6 @@ export default function SignupPage() {
               <input
                 type="text"
                 required
-                placeholder="Un solo apellido"
                 value={lastName}
                 onChange={handleLastNameChange}
                 className="w-full px-3.5 py-2.5 bg-slate-50/80 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-400 focus:bg-white transition"
@@ -158,7 +144,6 @@ export default function SignupPage() {
             <input
               type="text"
               required
-              placeholder="9 dígitos o correo@ejemplo.com"
               value={identifier}
               onChange={handleIdentifierChange}
               className="w-full px-3.5 py-2.5 bg-slate-50/80 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-400 focus:bg-white transition"
@@ -171,7 +156,6 @@ export default function SignupPage() {
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
-                placeholder="Mínimo 6 caracteres"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-3.5 py-2.5 pr-10 bg-slate-50/80 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-400 focus:bg-white transition"
@@ -202,6 +186,29 @@ export default function SignupPage() {
           </a>
         </p>
       </div>
+
+      {/* Pop-up / Modal de Bienvenida */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white p-6 rounded-3xl max-w-sm w-full text-center space-y-4 shadow-2xl border border-purple-100">
+            <div className="w-14 h-14 bg-gradient-to-tr from-purple-500 to-pink-500 rounded-2xl mx-auto flex items-center justify-center text-2xl">
+              🎉
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-lg font-bold text-slate-800">¡Cuenta Creada Exitosamente!</h2>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Bienvenido/a a <strong className="text-purple-600">CreatorDesk</strong>. Tu registro ha sido procesado. Haz clic abajo para iniciar sesión con tu cuenta.
+              </p>
+            </div>
+            <button
+              onClick={() => { window.location.href = '/login'; }}
+              className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold text-xs rounded-xl transition shadow-md shadow-purple-200"
+            >
+              Ir a Iniciar Sesión
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
