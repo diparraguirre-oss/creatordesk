@@ -17,29 +17,24 @@ export default function LoginPage() {
     setErrorMsg('');
 
     try {
-      const cleanInput = identifier.trim();
-      const isEmail = cleanInput.includes('@');
-      const cleanPhone = cleanInput.replace(/\D/g, '');
-      const emailToAuth = isEmail ? cleanInput : `phone_${cleanPhone}@creatordesk.app`;
-
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
-
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabase = createClient(supabaseUrl, supabaseKey);
-
-      const { error } = await supabase.auth.signInWithPassword({
-        email: emailToAuth,
-        password: password
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          identifier: identifier.trim(),
+          password: password
+        })
       });
 
-      if (error) {
-        setErrorMsg('Credenciales inválidas. Verifica tu celular/correo y contraseña.');
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        setErrorMsg(data.error || 'Credenciales inválidas.');
       } else {
         window.location.href = '/dashboard';
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Error al iniciar sesión');
+      setErrorMsg('Error de conexión con el servidor.');
     } finally {
       setLoading(false);
     }
