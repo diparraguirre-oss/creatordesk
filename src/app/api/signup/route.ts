@@ -29,7 +29,7 @@ export async function POST(req: Request) {
       auth: { persistSession: false }
     });
 
-    // 1. Crear usuario en Supabase Auth
+    // Crear usuario en Auth confirmando el correo de inmediato
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: emailToAuth,
       password: password,
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     const trialEnds = new Date();
     trialEnds.setDate(trialEnds.getDate() + 7);
 
-    // 2. Insertar solo las columnas estrictamente confirmadas en profiles
+    // Insertar en la tabla profiles
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .upsert({
