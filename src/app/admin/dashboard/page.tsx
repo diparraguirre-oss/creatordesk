@@ -9,6 +9,12 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [creators, setCreators] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Modal de edición
+  const [selectedCreator, setSelectedCreator] = useState<any>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedPlanDays, setSelectedPlanDays] = useState<number>(30);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const fetchCreators = async () => {
     try {
@@ -58,6 +64,69 @@ export default function AdminDashboardPage() {
     return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
+  // Acción: Eliminar Creador
+  const handleDeleteCreator = async (creator: any) => {
+    const confirmDelete = window.confirm(`¿Estás seguro de que deseas eliminar a "${creator.fullName}"? Esta acción no se puede deshacer.`);
+    if (!confirmDelete) return;
+
+    setActionLoading(true);
+    try {
+      const res = await fetch('/api/admin/creators/manage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', userId: creator.id })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        fetchCreators();
+      } else {
+        alert(data.error || 'Error al eliminar usuario.');
+      }
+    } catch (e) {
+      alert('Error de red al eliminar usuario.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Abrir Modal de Edición
+  const handleOpenEditModal = (creator: any) => {
+    setSelectedCreator(creator);
+    setIsEditModalOpen(true);
+  };
+
+  // Guardar Membresía Actualizada
+  const handleSavePlan = async () => {
+    if (!selectedCreator) return;
+    setActionLoading(true);
+
+    try {
+      const res = await fetch('/api/admin/creators/manage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updatePlan',
+          userId: selectedCreator.id,
+          planDays: selectedPlanDays
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIsEditModalOpen(false);
+        setSelectedCreator(null);
+        fetchCreators();
+      } else {
+        alert(data.error || 'Error al actualizar membresía.');
+      }
+    } catch (e) {
+      alert('Error de red al actualizar membresía.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const filteredCreators = creators.filter((c) =>
     c.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -73,7 +142,7 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#080811] text-slate-100 p-6">
+    <div className="min-h-screen bg-[#080811] text-slate-100 p-6 relative">
       <div className="max-w-7xl mx-auto space-y-6">
         <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-purple-900/30 pb-4 gap-4">
           <div className="flex items-center space-x-3">
@@ -107,7 +176,7 @@ export default function AdminDashboardPage() {
             <div className="text-2xl font-black text-purple-400">{creators.length}</div>
           </div>
           <div className="bg-[#0d0d1b] border border-slate-800/80 p-5 rounded-2xl space-y-1">
-            <span className="text-xs text-slate-400 font-medium">Cuentas Activas (En Prueba)</span>
+            <span className="text-xs text-slate-400 font-medium">Cuentas Activas</span>
             <div className="text-2xl font-black text-emerald-400">
               {creators.filter(c => !c.isExpired).length}
             </div>
@@ -183,14 +252,37 @@ export default function AdminDashboardPage() {
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-center">
-                        <a
-                          href={`/creatordesk/${c.slug}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-block px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-lg text-[11px] transition shadow-sm"
-                        >
-                          👁️ Ver Espacio
-                        </a>
+                        <div className="flex items-center justify-center space-x-2">
+                          {/* Ojo: Ver Espacio */}
+                          <a
+                            href={`/creatordesk/${c.slug}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Ver Espacio"
+                            className="p-2 bg-purple-900/40 hover:bg-purple-800/70 border border-purple-700/50 text-purple-200 rounded-xl transition shadow-sm text-sm"
+                          >
+                            👁️
+                          </a>
+
+                          {/* Lápiz: Editar Membresía */}
+                          <button
+                            onClick={() => handleOpenEditModal(c)}
+                            title="Editar Membresía"
+                            className="p-2 bg-indigo-900/40 hover:bg-indigo-800/70 border border-indigo-700/50 text-indigo-200 rounded-xl transition shadow-sm text-sm"
+                          >
+                            ✏️
+                          </button>
+
+                          {/* Tacho: Eliminar Creador */}
+                          <button
+                            onClick={() => handleDeleteCreator(c)}
+                            disabled={actionLoading}
+                            title="Eliminar Registro"
+                            className="p-2 bg-rose-950/50 hover:bg-rose-900/80 border border-rose-800/60 text-rose-300 rounded-xl transition shadow-sm text-sm disabled:opacity-50"
+                          >
+                            🗑️
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -200,6 +292,58 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Edición de Membresía */}
+      {isEditModalOpen && selectedCreator && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-[#0d0d1b] border border-purple-900/50 p-6 rounded-3xl max-w-sm w-full space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h2 className="text-base font-bold text-white">Editar Membresía</h2>
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                className="text-slate-400 hover:text-white text-xs font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-xs text-slate-400">Creador seleccionado:</span>
+              <p className="text-sm font-semibold text-purple-300">{selectedCreator.fullName}</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-slate-300">Seleccionar Plan de Acceso</label>
+              <select
+                value={selectedPlanDays}
+                onChange={(e) => setSelectedPlanDays(Number(e.target.value))}
+                className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500 transition"
+              >
+                <option value={7}>Prueba Gratuita (7 Días)</option>
+                <option value={30}>Plan Estándar (30 Días)</option>
+                <option value={60}>Plan Pro (60 Días)</option>
+                <option value={0}>Marcar como VENCIDO (Bloquear)</option>
+              </select>
+            </div>
+
+            <div className="flex items-center justify-end space-x-2 pt-2">
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSavePlan}
+                disabled={actionLoading}
+                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl transition shadow-md shadow-purple-900/40 disabled:opacity-50"
+              >
+                {actionLoading ? 'Guardando...' : 'Guardar Cambios'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
