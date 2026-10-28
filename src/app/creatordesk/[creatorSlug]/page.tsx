@@ -4,6 +4,37 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
 
+// Componentes SVG vectoriales con los logos reales
+const InstagramIcon = () => (
+  <svg className="w-4 h-4 text-pink-600 inline-block" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+  </svg>
+);
+
+const TikTokIcon = () => (
+  <svg className="w-4 h-4 text-slate-900 inline-block" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.98-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.82.57-1.31 1.56-1.3 2.56.02.94.51 1.86 1.28 2.4.95.68 2.22.78 3.24.28 1.05-.5 1.7-1.58 1.73-2.73.02-3.21.01-6.42.01-9.63V.02z"/>
+  </svg>
+);
+
+const FacebookIcon = () => (
+  <svg className="w-4 h-4 text-blue-600 inline-block" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+  </svg>
+);
+
+const YoutubeIcon = () => (
+  <svg className="w-4 h-4 text-red-600 inline-block" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+  </svg>
+);
+
+const EventIcon = () => (
+  <svg className="w-4 h-4 text-purple-600 inline-block" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2zm-7 5h5v5h-5z"/>
+  </svg>
+);
+
 export const CAMPAIGN_STAGES = [
   {
     stage: 'Negociación',
@@ -40,7 +71,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [showNewColabModal, setShowNewColabModal] = useState(false);
   const [selectedColabForDetail, setSelectedColabForDetail] = useState<any>(null);
 
-  // Formulario Nueva Colaboración con Redes Sociales y Eventos
+  // Formulario Nueva Colaboración con Logos Reales
   const [brandName, setBrandName] = useState('');
   const [contactName, setContactName] = useState('');
   const [dealType, setDealType] = useState<'Pago' | 'Canje'>('Pago');
@@ -69,7 +100,11 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       amount: 1500,
       paymentDays: 30,
       status: 'Guión Enviado',
-      deliverables: ['📸 2 Reels', '📸 3 Stories', '🎟️ 1 Evento'],
+      deliverables: [
+        { type: 'instagram', label: '2 Reels' },
+        { type: 'instagram', label: '3 Stories' },
+        { type: 'evento', label: '1 Evento' }
+      ],
       statusHistory: {
         'Campaña Recibida': '20/10/2026',
         'Guión Enviado': '25/10/2026'
@@ -84,7 +119,10 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       amount: 0,
       paymentDays: 0,
       status: 'En Grabación',
-      deliverables: ['🎵 1 TikTok', '📘 1 Facebook'],
+      deliverables: [
+        { type: 'tiktok', label: '1 TikTok' },
+        { type: 'facebook', label: '1 Post' }
+      ],
       statusHistory: {
         'Campaña Recibida': '22/10/2026',
         'En Grabación': '27/10/2026'
@@ -99,7 +137,10 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       amount: 2200,
       paymentDays: 15,
       status: 'Factura Cobrada',
-      deliverables: ['📸 1 Reel', '🔴 1 YouTube'],
+      deliverables: [
+        { type: 'instagram', label: '1 Reel' },
+        { type: 'youtube', label: '1 Video' }
+      ],
       statusHistory: {
         'Campaña Recibida': '10/10/2026',
         'Factura Cobrada': '28/10/2026'
@@ -160,12 +201,12 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     if (!brandName) return;
 
     const delivArray = [];
-    if (deliverables.reels > 0) delivArray.push(`📸 ${deliverables.reels} Reels (IG)`);
-    if (deliverables.stories > 0) delivArray.push(`📸 ${deliverables.stories} Stories (IG)`);
-    if (deliverables.tiktoks > 0) delivArray.push(`🎵 ${deliverables.tiktoks} TikToks`);
-    if (deliverables.facebook > 0) delivArray.push(`📘 ${deliverables.facebook} Facebook`);
-    if (deliverables.youtube > 0) delivArray.push(`🔴 ${deliverables.youtube} YouTube`);
-    if (deliverables.evento > 0) delivArray.push(`🎟️ ${deliverables.evento} Evento`);
+    if (deliverables.reels > 0) delivArray.push({ type: 'instagram', label: `${deliverables.reels} Reels` });
+    if (deliverables.stories > 0) delivArray.push({ type: 'instagram', label: `${deliverables.stories} Stories` });
+    if (deliverables.tiktoks > 0) delivArray.push({ type: 'tiktok', label: `${deliverables.tiktoks} TikToks` });
+    if (deliverables.facebook > 0) delivArray.push({ type: 'facebook', label: `${deliverables.facebook} Facebook` });
+    if (deliverables.youtube > 0) delivArray.push({ type: 'youtube', label: `${deliverables.youtube} YouTube` });
+    if (deliverables.evento > 0) delivArray.push({ type: 'evento', label: `${deliverables.evento} Evento` });
 
     const todayStr = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
@@ -178,7 +219,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       amount: dealType === 'Pago' ? Number(amount) || 0 : 0,
       paymentDays: Number(paymentDays),
       status: 'Campaña Recibida',
-      deliverables: delivArray.length > 0 ? delivArray : ['Contenido personalizado'],
+      deliverables: delivArray.length > 0 ? delivArray : [{ type: 'instagram', label: 'Contenido personalizado' }],
       statusHistory: {
         'Campaña Recibida': todayStr
       }
@@ -225,6 +266,17 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     if (colabFilter === 'cobro') return stageIdx === 3;
     return true;
   });
+
+  const renderSocialIcon = (type: string) => {
+    switch (type) {
+      case 'instagram': return <InstagramIcon />;
+      case 'tiktok': return <TikTokIcon />;
+      case 'facebook': return <FacebookIcon />;
+      case 'youtube': return <YoutubeIcon />;
+      case 'evento': return <EventIcon />;
+      default: return <InstagramIcon />;
+    }
+  };
 
   if (loading) {
     return (
@@ -362,7 +414,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           </div>
         )}
 
-        {/* PESTAÑA COLABS */}
+        {/* PESTAÑA COLABS CON LOGOS SVG REALES */}
         {activeTab === 'colabs' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -443,11 +495,12 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                       </div>
                     </div>
 
-                    {/* Visualización clara de Entregables por Red Social */}
+                    {/* Entregables con Logos Vectoriales Reales */}
                     <div className="flex flex-wrap gap-1.5">
-                      {c.deliverables?.map((d: string, idx: number) => (
-                        <span key={idx} className="px-2.5 py-1 bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-[11px] rounded-lg">
-                          {d}
+                      {c.deliverables?.map((d: any, idx: number) => (
+                        <span key={idx} className="px-2.5 py-1 bg-slate-50 border border-slate-200 text-slate-700 font-semibold text-[11px] rounded-lg flex items-center gap-1.5 shadow-2xs">
+                          {renderSocialIcon(d.type)}
+                          <span>{d.label}</span>
                         </span>
                       ))}
                     </div>
@@ -623,7 +676,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         </div>
       )}
 
-      {/* Modal Nueva Colaboración con Redes Sociales y Eventos */}
+      {/* Modal Nueva Colaboración con Logos Vectoriales */}
       {showNewColabModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl border border-purple-100 my-8">
@@ -728,12 +781,14 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 </div>
               )}
 
-              {/* Selección Visual de Entregables por Red Social y Evento */}
+              {/* Selección Visual de Entregables con Logos Reales */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">Contenidos a Entregar (Selección)</label>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="font-medium">📸 Instagram Reel</span>
+                    <span className="font-medium flex items-center gap-1.5">
+                      <InstagramIcon /> Instagram Reel
+                    </span>
                     <div className="flex items-center space-x-1">
                       <button type="button" onClick={() => setDeliverables({ ...deliverables, reels: Math.max(0, deliverables.reels - 1) })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">-</button>
                       <span className="font-bold px-1">{deliverables.reels}</span>
@@ -742,7 +797,9 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                   </div>
 
                   <div className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="font-medium">📸 IG Stories</span>
+                    <span className="font-medium flex items-center gap-1.5">
+                      <InstagramIcon /> IG Stories
+                    </span>
                     <div className="flex items-center space-x-1">
                       <button type="button" onClick={() => setDeliverables({ ...deliverables, stories: Math.max(0, deliverables.stories - 1) })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">-</button>
                       <span className="font-bold px-1">{deliverables.stories}</span>
@@ -751,7 +808,9 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                   </div>
 
                   <div className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="font-medium">🎵 TikTok</span>
+                    <span className="font-medium flex items-center gap-1.5">
+                      <TikTokIcon /> TikTok
+                    </span>
                     <div className="flex items-center space-x-1">
                       <button type="button" onClick={() => setDeliverables({ ...deliverables, tiktoks: Math.max(0, deliverables.tiktoks - 1) })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">-</button>
                       <span className="font-bold px-1">{deliverables.tiktoks}</span>
@@ -760,7 +819,9 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                   </div>
 
                   <div className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="font-medium">📘 Facebook</span>
+                    <span className="font-medium flex items-center gap-1.5">
+                      <FacebookIcon /> Facebook
+                    </span>
                     <div className="flex items-center space-x-1">
                       <button type="button" onClick={() => setDeliverables({ ...deliverables, facebook: Math.max(0, deliverables.facebook - 1) })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">-</button>
                       <span className="font-bold px-1">{deliverables.facebook}</span>
@@ -769,7 +830,9 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                   </div>
 
                   <div className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="font-medium">🔴 YouTube</span>
+                    <span className="font-medium flex items-center gap-1.5">
+                      <YoutubeIcon /> YouTube
+                    </span>
                     <div className="flex items-center space-x-1">
                       <button type="button" onClick={() => setDeliverables({ ...deliverables, youtube: Math.max(0, deliverables.youtube - 1) })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">-</button>
                       <span className="font-bold px-1">{deliverables.youtube}</span>
@@ -778,7 +841,9 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                   </div>
 
                   <div className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="font-medium">🎟️ Evento</span>
+                    <span className="font-medium flex items-center gap-1.5">
+                      <EventIcon /> Evento
+                    </span>
                     <div className="flex items-center space-x-1">
                       <button type="button" onClick={() => setDeliverables({ ...deliverables, evento: Math.max(0, deliverables.evento - 1) })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">-</button>
                       <span className="font-bold px-1">{deliverables.evento}</span>
