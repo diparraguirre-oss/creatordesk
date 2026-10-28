@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     const trialEnds = new Date();
     trialEnds.setDate(trialEnds.getDate() + 7);
 
-    // 2. Insertar o actualizar en la tabla profiles sin la columna 'phone'
+    // 2. Insertar solo las columnas estrictamente confirmadas en profiles
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .upsert({
@@ -53,8 +53,7 @@ export async function POST(req: Request) {
         full_name: fullName,
         email: emailToAuth,
         subscription_status: 'trial',
-        trial_ends_at: trialEnds.toISOString(),
-        updated_at: new Date().toISOString()
+        trial_ends_at: trialEnds.toISOString()
       });
 
     if (profileError) {
