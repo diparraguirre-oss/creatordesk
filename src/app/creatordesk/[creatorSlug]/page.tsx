@@ -35,19 +35,19 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [daysRemaining, setDaysRemaining] = useState<number>(7);
   const [activeTab, setActiveTab] = useState<'home' | 'colabs' | 'calendar' | 'tasks' | 'income' | 'mediakit'>('colabs');
 
-  // Filtros de Colabs por Etapas Reales
+  // Filtros de Colabs
   const [colabFilter, setColabFilter] = useState<string>('todas');
   const [showNewColabModal, setShowNewColabModal] = useState(false);
   const [selectedColabForDetail, setSelectedColabForDetail] = useState<any>(null);
 
-  // Formulario Nueva Colaboración con Contacto y Entregables explícitos
+  // Formulario Nueva Colaboración con Redes Sociales y Eventos
   const [brandName, setBrandName] = useState('');
   const [contactName, setContactName] = useState('');
   const [dealType, setDealType] = useState<'Pago' | 'Canje'>('Pago');
   const [currency, setCurrency] = useState<'USD' | 'PEN'>('USD');
   const [amount, setAmount] = useState('');
   const [paymentDays, setPaymentDays] = useState('30');
-  const [deliverables, setDeliverables] = useState({ reels: 1, tiktoks: 0, stories: 2, posts: 0, shorts: 0 });
+  const [deliverables, setDeliverables] = useState({ reels: 1, tiktoks: 0, stories: 2, facebook: 0, youtube: 0, evento: 0 });
 
   // Modal confirmación tareas
   const [pendingTask, setPendingTask] = useState<any>(null);
@@ -69,7 +69,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       amount: 1500,
       paymentDays: 30,
       status: 'Guión Enviado',
-      deliverables: ['2 Reels', '3 Stories'],
+      deliverables: ['📸 2 Reels', '📸 3 Stories', '🎟️ 1 Evento'],
       statusHistory: {
         'Campaña Recibida': '20/10/2026',
         'Guión Enviado': '25/10/2026'
@@ -84,7 +84,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       amount: 0,
       paymentDays: 0,
       status: 'En Grabación',
-      deliverables: ['1 TikTok', '1 Post'],
+      deliverables: ['🎵 1 TikTok', '📘 1 Facebook'],
       statusHistory: {
         'Campaña Recibida': '22/10/2026',
         'En Grabación': '27/10/2026'
@@ -99,7 +99,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       amount: 2200,
       paymentDays: 15,
       status: 'Factura Cobrada',
-      deliverables: ['1 Reel Unboxing'],
+      deliverables: ['📸 1 Reel', '🔴 1 YouTube'],
       statusHistory: {
         'Campaña Recibida': '10/10/2026',
         'Factura Cobrada': '28/10/2026'
@@ -160,11 +160,12 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     if (!brandName) return;
 
     const delivArray = [];
-    if (deliverables.reels > 0) delivArray.push(`${deliverables.reels} Reels`);
-    if (deliverables.tiktoks > 0) delivArray.push(`${deliverables.tiktoks} TikToks`);
-    if (deliverables.stories > 0) delivArray.push(`${deliverables.stories} Stories`);
-    if (deliverables.posts > 0) delivArray.push(`${deliverables.posts} Posts`);
-    if (deliverables.shorts > 0) delivArray.push(`${deliverables.shorts} Shorts`);
+    if (deliverables.reels > 0) delivArray.push(`📸 ${deliverables.reels} Reels (IG)`);
+    if (deliverables.stories > 0) delivArray.push(`📸 ${deliverables.stories} Stories (IG)`);
+    if (deliverables.tiktoks > 0) delivArray.push(`🎵 ${deliverables.tiktoks} TikToks`);
+    if (deliverables.facebook > 0) delivArray.push(`📘 ${deliverables.facebook} Facebook`);
+    if (deliverables.youtube > 0) delivArray.push(`🔴 ${deliverables.youtube} YouTube`);
+    if (deliverables.evento > 0) delivArray.push(`🎟️ ${deliverables.evento} Evento`);
 
     const todayStr = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
@@ -361,13 +362,13 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           </div>
         )}
 
-        {/* PESTAÑA COLABS MEJORADA CON FILTROS DE ETAPAS, CONTACTO Y ENTREGABLES PÍLDORA */}
+        {/* PESTAÑA COLABS */}
         {activeTab === 'colabs' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold text-slate-800">Gestión de Colaboraciones</h2>
-                <p className="text-xs text-slate-500">Supervisa el flujo de tus campañas y contactos en tiempo real.</p>
+                <p className="text-xs text-slate-500">Supervisa el flujo de tus campañas y redes sociales en tiempo real.</p>
               </div>
               <button
                 onClick={() => setShowNewColabModal(true)}
@@ -442,16 +443,16 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                       </div>
                     </div>
 
-                    {/* Visualización clara de Entregables */}
+                    {/* Visualización clara de Entregables por Red Social */}
                     <div className="flex flex-wrap gap-1.5">
                       {c.deliverables?.map((d: string, idx: number) => (
                         <span key={idx} className="px-2.5 py-1 bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-[11px] rounded-lg">
-                          📦 {d}
+                          {d}
                         </span>
                       ))}
                     </div>
 
-                    {/* Timeline con Fecha del Estado Actual */}
+                    {/* Timeline */}
                     <div className="space-y-2 pt-1">
                       <div className="flex justify-between items-center text-[10px] text-slate-400 font-medium px-1">
                         <span>Progreso de campaña</span>
@@ -555,7 +556,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
       </main>
 
-      {/* Modal / Drawer para Gestión Detallada con Registro de Fechas */}
+      {/* Modal / Drawer para Gestión Detallada */}
       {selectedColabForDetail && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-5 shadow-2xl border border-purple-100">
@@ -622,7 +623,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         </div>
       )}
 
-      {/* Modal Nueva Colaboración con Persona de Contacto y Entregables Claros */}
+      {/* Modal Nueva Colaboración con Redes Sociales y Eventos */}
       {showNewColabModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl border border-purple-100 my-8">
@@ -727,12 +728,12 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 </div>
               )}
 
-              {/* Selección Visual de Entregables */}
+              {/* Selección Visual de Entregables por Red Social y Evento */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">Contenidos a Entregar (Selección)</label>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
-                    <span>🎬 Reels</span>
+                    <span className="font-medium">📸 Instagram Reel</span>
                     <div className="flex items-center space-x-1">
                       <button type="button" onClick={() => setDeliverables({ ...deliverables, reels: Math.max(0, deliverables.reels - 1) })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">-</button>
                       <span className="font-bold px-1">{deliverables.reels}</span>
@@ -741,16 +742,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                   </div>
 
                   <div className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
-                    <span>🎵 TikToks</span>
-                    <div className="flex items-center space-x-1">
-                      <button type="button" onClick={() => setDeliverables({ ...deliverables, tiktoks: Math.max(0, deliverables.tiktoks - 1) })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">-</button>
-                      <span className="font-bold px-1">{deliverables.tiktoks}</span>
-                      <button type="button" onClick={() => setDeliverables({ ...deliverables, tiktoks: deliverables.tiktoks + 1 })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">+</button>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
-                    <span>📱 Stories</span>
+                    <span className="font-medium">📸 IG Stories</span>
                     <div className="flex items-center space-x-1">
                       <button type="button" onClick={() => setDeliverables({ ...deliverables, stories: Math.max(0, deliverables.stories - 1) })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">-</button>
                       <span className="font-bold px-1">{deliverables.stories}</span>
@@ -759,11 +751,38 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                   </div>
 
                   <div className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
-                    <span>🖼️ Posts</span>
+                    <span className="font-medium">🎵 TikTok</span>
                     <div className="flex items-center space-x-1">
-                      <button type="button" onClick={() => setDeliverables({ ...deliverables, posts: Math.max(0, deliverables.posts - 1) })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">-</button>
-                      <span className="font-bold px-1">{deliverables.posts}</span>
-                      <button type="button" onClick={() => setDeliverables({ ...deliverables, posts: deliverables.posts + 1 })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">+</button>
+                      <button type="button" onClick={() => setDeliverables({ ...deliverables, tiktoks: Math.max(0, deliverables.tiktoks - 1) })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">-</button>
+                      <span className="font-bold px-1">{deliverables.tiktoks}</span>
+                      <button type="button" onClick={() => setDeliverables({ ...deliverables, tiktoks: deliverables.tiktoks + 1 })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">+</button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="font-medium">📘 Facebook</span>
+                    <div className="flex items-center space-x-1">
+                      <button type="button" onClick={() => setDeliverables({ ...deliverables, facebook: Math.max(0, deliverables.facebook - 1) })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">-</button>
+                      <span className="font-bold px-1">{deliverables.facebook}</span>
+                      <button type="button" onClick={() => setDeliverables({ ...deliverables, facebook: deliverables.facebook + 1 })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">+</button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="font-medium">🔴 YouTube</span>
+                    <div className="flex items-center space-x-1">
+                      <button type="button" onClick={() => setDeliverables({ ...deliverables, youtube: Math.max(0, deliverables.youtube - 1) })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">-</button>
+                      <span className="font-bold px-1">{deliverables.youtube}</span>
+                      <button type="button" onClick={() => setDeliverables({ ...deliverables, youtube: deliverables.youtube + 1 })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">+</button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="font-medium">🎟️ Evento</span>
+                    <div className="flex items-center space-x-1">
+                      <button type="button" onClick={() => setDeliverables({ ...deliverables, evento: Math.max(0, deliverables.evento - 1) })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">-</button>
+                      <span className="font-bold px-1">{deliverables.evento}</span>
+                      <button type="button" onClick={() => setDeliverables({ ...deliverables, evento: deliverables.evento + 1 })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">+</button>
                     </div>
                   </div>
                 </div>
