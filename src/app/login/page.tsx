@@ -33,13 +33,19 @@ export default function LoginPage() {
         return;
       }
 
-      // Guardar sesión en el cliente y navegar
+      // Generar slug dinamico desde el identificador o respuesta de usuario
+      const rawUser = data.user?.user_metadata?.full_name || cleanInput;
+      const slug = rawUser.toLowerCase().trim().replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '') || 'usuario';
+
+      // Guardar contexto local
       localStorage.setItem('creatordesk_user', JSON.stringify({
         email: cleanInput.includes('@') ? cleanInput : `phone_${cleanInput.replace(/\D/g, '')}@creatordesk.app`,
+        slug: slug,
         subscription_status: 'PRUEBA (7 DÍAS)'
       }));
 
-      window.location.href = '/dashboard';
+      // Redirigir a la ruta dinamica /creatordesk/[slug]
+      window.location.href = `/creatordesk/${slug}`;
     } catch (err: any) {
       setErrorMsg('Error de conexión con el servidor.');
       setLoading(false);
