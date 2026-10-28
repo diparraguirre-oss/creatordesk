@@ -4,7 +4,6 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
 
-// Definición oficial de los 13 estados por etapas
 export const CAMPAIGN_STAGES = [
   {
     stage: 'Negociación',
@@ -41,6 +40,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   // Filtros de Colabs
   const [colabFilter, setColabFilter] = useState<string>('todas');
   const [showNewColabModal, setShowNewColabModal] = useState(false);
+  const [selectedColabForDetail, setSelectedColabForDetail] = useState<any>(null);
 
   // Formulario Nueva Colaboración
   const [brandName, setBrandName] = useState('');
@@ -50,7 +50,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [paymentDays, setPaymentDays] = useState('30');
   const [deliverables, setDeliverables] = useState({ reels: 1, tiktoks: 0, stories: 2, posts: 0 });
 
-  // Modal para confirmar tarea
+  // Modal confirmación tareas
   const [pendingTask, setPendingTask] = useState<any>(null);
   const [showTaskConfirmModal, setShowTaskConfirmModal] = useState(false);
 
@@ -168,7 +168,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     setAmount('');
   };
 
-  // Función para determinar en qué etapa (1, 2, 3 o 4) se encuentra un estado
   const getStageIndex = (status: string) => {
     if (CAMPAIGN_STAGES[0].statuses.includes(status)) return 0;
     if (CAMPAIGN_STAGES[1].statuses.includes(status)) return 1;
@@ -179,6 +178,9 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
   const handleStatusChange = (colabId: string, newStatus: string) => {
     setColabs(colabs.map(c => c.id === colabId ? { ...c, status: newStatus } : c));
+    if (selectedColabForDetail && selectedColabForDetail.id === colabId) {
+      setSelectedColabForDetail({ ...selectedColabForDetail, status: newStatus });
+    }
   };
 
   const filteredColabs = colabs.filter(c => {
@@ -324,13 +326,13 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           </div>
         )}
 
-        {/* PESTAÑA COLABS CON FLUJO DE 13 ESTADOS */}
+        {/* PESTAÑA COLABS REDISEÑADA PROFESIONAL */}
         {activeTab === 'colabs' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold text-slate-800">Gestión de Colaboraciones</h2>
-                <p className="text-xs text-slate-500">Haz seguimiento al estado exacto de tus campañas de inicio a fin.</p>
+                <p className="text-xs text-slate-500">Supervisa tus campañas activas, estados de entrega y pagos.</p>
               </div>
               <button
                 onClick={() => setShowNewColabModal(true)}
@@ -340,7 +342,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               </button>
             </div>
 
-            {/* Filtros */}
+            {/* Filtros Pastel */}
             <div className="flex items-center space-x-2 bg-white/80 p-1.5 rounded-2xl border border-white/60 shadow-sm w-fit">
               {[
                 { key: 'todas', label: 'Todas' },
@@ -361,90 +363,89 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               ))}
             </div>
 
-            {/* Tarjetas de Campaña */}
+            {/* Tarjetas Rediseñadas Elegantes */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               {filteredColabs.map((c) => {
                 const currentStageIdx = getStageIndex(c.status);
 
                 return (
-                  <div key={c.id} className="bg-white/80 backdrop-blur-xl border border-white/60 p-5 rounded-3xl space-y-4 shadow-xl shadow-purple-100/30">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                      <div>
-                        <span className="font-extrabold text-slate-800 text-base">{c.brand}</span>
-                        <div className="text-[11px] text-slate-500">{c.deliverables}</div>
-                      </div>
-
-                      <span className="px-3 py-1 bg-purple-100 border border-purple-200 text-purple-700 rounded-xl text-xs font-extrabold shadow-sm">
-                        {c.status}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-xs p-3 bg-slate-50/80 rounded-2xl border border-slate-100">
-                      <div>
-                        <span className="text-slate-400 block text-[10px]">Acuerdo:</span>
-                        <strong className={c.dealType === 'Canje' ? 'text-pink-600' : 'text-purple-600'}>
-                          {c.dealType}
-                        </strong>
-                      </div>
-
-                      {c.dealType === 'Pago' && (
-                        <div>
-                          <span className="text-slate-400 block text-[10px]">Monto:</span>
-                          <strong className="text-emerald-600 font-extrabold">
-                            {c.currency === 'USD' ? `$ ${c.amount}` : `S/ ${c.amount}`}
-                          </strong>
+                  <div
+                    key={c.id}
+                    className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-5 shadow-xl shadow-purple-100/30 hover:border-purple-200 transition group"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <h3 className="font-black text-slate-800 text-base">{c.brand}</h3>
+                          <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-extrabold border ${
+                            c.dealType === 'Canje'
+                              ? 'bg-pink-50 border-pink-200 text-pink-600'
+                              : 'bg-purple-50 border-purple-200 text-purple-600'
+                          }`}>
+                            {c.dealType}
+                          </span>
                         </div>
-                      )}
-                    </div>
+                        <p className="text-xs font-medium text-slate-500">{c.deliverables}</p>
+                      </div>
 
-                    {/* Stepper Pipeline de 4 Etapas */}
-                    <div className="space-y-1.5 pt-1">
-                      <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 px-1">
-                        {CAMPAIGN_STAGES.map((stg, idx) => (
-                          <div
-                            key={stg.stage}
-                            className={`flex items-center space-x-1 ${
-                              idx <= currentStageIdx ? 'text-purple-600 font-black' : 'text-slate-300'
-                            }`}
-                          >
-                            <span>{stg.icon}</span>
-                            <span className="hidden sm:inline">{stg.stage}</span>
+                      <div className="text-right space-y-1">
+                        {c.dealType === 'Pago' ? (
+                          <div className="text-base font-black text-emerald-600">
+                            {c.currency === 'USD' ? `$ ${c.amount}` : `S/ ${c.amount}`}
                           </div>
-                        ))}
-                      </div>
-
-                      <div className="grid grid-cols-4 gap-1 h-2 bg-slate-100 rounded-full overflow-hidden p-0.5">
-                        {CAMPAIGN_STAGES.map((_, idx) => (
-                          <div
-                            key={idx}
-                            className={`h-full rounded-full transition-all duration-300 ${
-                              idx <= currentStageIdx ? 'bg-gradient-to-r from-purple-500 to-pink-500' : 'bg-slate-200'
-                            }`}
-                          ></div>
-                        ))}
+                        ) : (
+                          <div className="text-xs font-bold text-pink-500">Canje Directo</div>
+                        )}
+                        <span className="inline-block px-2.5 py-1 bg-purple-100/80 border border-purple-200 text-purple-700 rounded-xl text-[11px] font-bold">
+                          {c.status}
+                        </span>
                       </div>
                     </div>
 
-                    {/* Selector de Estado Completo */}
-                    <div className="pt-2">
-                      <label className="block text-[11px] font-bold text-slate-500 mb-1">
-                        Actualizar Estado de la Campaña:
-                      </label>
-                      <select
-                        value={c.status}
-                        onChange={(e) => handleStatusChange(c.id, e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-purple-400"
+                    {/* Timeline de Hitos Elegante */}
+                    <div className="space-y-2 pt-1">
+                      <div className="relative flex items-center justify-between">
+                        {/* Línea conectora de fondo */}
+                        <div className="absolute top-1/2 left-2 right-2 -translate-y-1/2 h-0.5 bg-slate-200 -z-0"></div>
+                        <div
+                          className="absolute top-1/2 left-2 -translate-y-1/2 h-0.5 bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500 -z-0"
+                          style={{ width: `${(currentStageIdx / 3) * 100}%` }}
+                        ></div>
+
+                        {CAMPAIGN_STAGES.map((stg, idx) => {
+                          const isCompleted = idx <= currentStageIdx;
+                          return (
+                            <div key={stg.stage} className="relative z-10 flex flex-col items-center">
+                              <div
+                                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                                  isCompleted
+                                    ? 'bg-gradient-to-tr from-purple-500 to-pink-500 text-white shadow-md shadow-purple-200 ring-2 ring-white'
+                                    : 'bg-slate-100 text-slate-400 border border-slate-300'
+                                }`}
+                              >
+                                {isCompleted ? '✓' : idx + 1}
+                              </div>
+                              <span className={`text-[10px] mt-1 font-semibold ${
+                                isCompleted ? 'text-purple-700 font-bold' : 'text-slate-400'
+                              }`}>
+                                {stg.stage}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex items-center justify-between border-t border-slate-100">
+                      <span className="text-[11px] text-slate-400">
+                        {c.paymentDays > 0 ? `Plazo: ${c.paymentDays} Días` : 'Entrega sin factura'}
+                      </span>
+                      <button
+                        onClick={() => setSelectedColabForDetail(c)}
+                        className="px-3.5 py-1.5 bg-slate-100 hover:bg-purple-100 text-purple-700 font-bold text-xs rounded-xl transition flex items-center gap-1.5"
                       >
-                        {CAMPAIGN_STAGES.map((stg) => (
-                          <optgroup key={stg.stage} label={`${stg.icon} ${stg.stage}`}>
-                            {stg.statuses.map((st) => (
-                              <option key={st} value={st}>
-                                {st}
-                              </option>
-                            ))}
-                          </optgroup>
-                        ))}
-                      </select>
+                        ⚙️ Gestionar Estado
+                      </button>
                     </div>
                   </div>
                 );
@@ -500,6 +501,63 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         )}
 
       </main>
+
+      {/* Modal / Drawer para Gestión Detallada de Estado de Campaña */}
+      {selectedColabForDetail && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-5 shadow-2xl border border-purple-100">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h2 className="text-base font-bold text-slate-800">{selectedColabForDetail.brand}</h2>
+                <p className="text-xs text-slate-400">Actualizar flujo de la colaboración</p>
+              </div>
+              <button
+                onClick={() => setSelectedColabForDetail(null)}
+                className="text-slate-400 hover:text-slate-600 text-xs font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-xs font-bold text-slate-600">Seleccionar Estado Actual (13 Fases):</label>
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                {CAMPAIGN_STAGES.map((stg) => (
+                  <div key={stg.stage} className="space-y-1">
+                    <span className="text-[11px] font-bold text-purple-600 flex items-center gap-1">
+                      <span>{stg.icon}</span>
+                      <span>{stg.stage}</span>
+                    </span>
+                    <div className="grid grid-cols-1 gap-1 pl-2">
+                      {stg.statuses.map((st) => (
+                        <button
+                          key={st}
+                          type="button"
+                          onClick={() => handleStatusChange(selectedColabForDetail.id, st)}
+                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition border ${
+                            selectedColabForDetail.status === st
+                              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold border-transparent shadow-sm'
+                              : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          {st}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={() => setSelectedColabForDetail(null)}
+              className="w-full py-2.5 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200 transition"
+            >
+              Cerrar y Guardar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal Nueva Colaboración */}
       {showNewColabModal && (
