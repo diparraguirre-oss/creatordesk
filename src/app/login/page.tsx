@@ -15,9 +15,11 @@ export default function LoginPage() {
   const [showChangeModal, setShowChangeModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [changeError, setChangeError] = useState('');
   const [userIdToChange, setUserIdToChange] = useState('');
-  const [pendingUserObj, setPendingUserObj] = useState<any>(null);
+  const [showSuccessChangeModal, setShowSuccessChangeModal] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,10 +41,9 @@ export default function LoginPage() {
         return;
       }
 
-      // Si requiere cambio de contraseña
+      // Si requiere cambio obligatorio de contraseña
       if (data.user?.user_metadata?.must_change_password) {
         setUserIdToChange(data.user.id);
-        setPendingUserObj(data);
         setLoading(false);
         setShowChangeModal(true);
         return;
@@ -96,19 +97,17 @@ export default function LoginPage() {
         return;
       }
 
-      if (pendingUserObj) {
-        localStorage.setItem('creatordesk_user', JSON.stringify({
-          email: pendingUserObj.user.email || identifier,
-          slug: pendingUserObj.slug,
-          subscription_status: pendingUserObj.subscription_status || 'PRUEBA (7 DÍAS)',
-          created_at: pendingUserObj.user.created_at
-        }));
-        window.location.href = `/creatordesk/${pendingUserObj.slug}`;
-      }
+      setLoading(false);
+      setShowChangeModal(false);
+      setShowSuccessChangeModal(true);
     } catch (err: any) {
       setChangeError('Error de red al actualizar contraseña.');
       setLoading(false);
     }
+  };
+
+  const preventPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
   };
 
   return (
@@ -200,33 +199,85 @@ export default function LoginPage() {
             <form onSubmit={handleUpdatePassword} className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Nueva Contraseña</label>
-                <input
-                  type="password"
-                  required
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-purple-400"
-                />
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    required
+                    value={newPassword}
+                    onPaste={preventPaste}
+                    onCopy={preventPaste}
+                    onCut={preventPaste}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-3 py-2 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-purple-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition text-xs"
+                  >
+                    {showNewPassword ? '👁️' : '🙈'}
+                  </button>
+                </div>
               </div>
+
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Confirmar Nueva Contraseña</label>
-                <input
-                  type="password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-purple-400"
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    required
+                    value={confirmPassword}
+                    onPaste={preventPaste}
+                    onCopy={preventPaste}
+                    onCut={preventPaste}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full px-3 py-2 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-purple-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition text-xs"
+                  >
+                    {showConfirmPassword ? '👁️' : '🙈'}
+                  </button>
+                </div>
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-200"
+                className="w-full py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold text-xs rounded-xl transition shadow-md shadow-purple-200 disabled:opacity-50"
               >
-                {loading ? 'Actualizando...' : 'Guardar y Entrar'}
+                {loading ? 'Actualizando...' : 'Actualizar'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Pop-up de Confirmación de Actualización Exitosa */}
+      {showSuccessChangeModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-3xl max-w-sm w-full text-center space-y-4 shadow-2xl border border-purple-100">
+            <div className="w-14 h-14 bg-gradient-to-tr from-emerald-500 to-teal-500 rounded-2xl mx-auto flex items-center justify-center text-2xl text-white">
+              ✅
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-lg font-bold text-slate-800">¡Contraseña Actualizada!</h2>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Tu contraseña ha sido actualizada exitosamente. Por favor, inicia sesión con tu nueva contraseña.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setShowSuccessChangeModal(false);
+                setPassword('');
+                window.location.href = '/login';
+              }}
+              className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold text-xs rounded-xl transition shadow-md shadow-purple-200"
+            >
+              Ir a Iniciar Sesión
+            </button>
           </div>
         </div>
       )}
