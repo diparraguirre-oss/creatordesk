@@ -4,106 +4,55 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
 
-interface Profile {
-  id: string;
-  full_name: string;
-  email: string;
-  phone: string;
-  subscription_status: string;
-  trial_ends_at: string;
-  created_at: string;
-}
-
 export default function AdminDashboardPage() {
-  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [actionMsg, setActionMsg] = useState<string | null>(null);
-
-  const fetchProfiles = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/admin/users', { cache: 'no-store' });
-      const data = await res.json();
-      if (data.profiles) {
-        setProfiles(data.profiles);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
-    fetchProfiles();
-  }, []);
+    // Validar sesion de administrador guardada
+    const adminSession = localStorage.getItem('creatordesk_admin_session');
 
-  const handleResetPassword = async (email: string, name: string) => {
-    if (!email) {
-      alert('Sin credencial registrada');
+    if (!adminSession) {
+      window.location.href = '/admin/login';
       return;
     }
-    const confirmAction = confirm(`¿Enviar restablecimiento de contraseña a ${name} (${email})?`);
-    if (!confirmAction) return;
 
     try {
-      const res = await fetch('/api/admin/update-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
-      const resData = await res.json();
-      if (resData.success) {
-        setActionMsg(`Instrucciones enviadas a ${email}`);
+      const parsed = JSON.parse(adminSession);
+      if (parsed?.authenticated) {
+        setAuthenticated(true);
       } else {
-        setActionMsg(`Resultado: ${resData.error || 'Procesado'}`);
+        window.location.href = '/admin/login';
+        return;
       }
-    } catch (err: any) {
-      setActionMsg(`Error de conexión al resetear.`);
+    } catch (e) {
+      window.location.href = '/admin/login';
+      return;
     }
 
-    setTimeout(() => setActionMsg(null), 4000);
+    setLoading(false);
+  }, []);
+
+  const handleAdminLogout = () => {
+    localStorage.removeItem('creatordesk_admin_session');
+    window.location.href = '/admin/login';
   };
 
-  const handleAddDays = async (id: string, currentExp: string) => {
-    const baseDate = currentExp ? new Date(currentExp) : new Date();
-    baseDate.setDate(baseDate.getDate() + 30);
-
-    await fetch('/api/admin/users', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, trial_ends_at: baseDate.toISOString() })
-    });
-
-    fetchProfiles();
-  };
-
-  const handleDeleteUser = async (id: string) => {
-    if (!confirm('¿Eliminar usuario?')) return;
-    await fetch('/api/admin/delete-user', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: id })
-    });
-    fetchProfiles();
-  };
-
-  const filtered = profiles.filter(p =>
-    p.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  if (loading || !authenticated) {
+    return (
+      <div className="min-h-screen bg-[#080811] flex items-center justify-center text-white text-sm font-medium">
+        Verificando permisos de administrador...
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#080811] text-slate-100 p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center bg-[#0d0d1b] border border-slate-800/80 p-6 rounded-2xl shadow-xl">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-purple-600/20 border border-purple-500/30 rounded-xl flex items-center justify-center text-purple-400">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
+    <div className="min-h-screen bg-[#080811] text-slate-100 p-6">
+      <div className="max-w-6xl mx-auto space-y-6">
+        <header className="flex items-center justify-between border-b border-purple-900/30 pb-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-tr from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center font-black text-white text-base shadow-md shadow-purple-900/40">
+              👑
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">Panel Administrador v2</h1>
@@ -111,103 +60,18 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <button
-            onClick={fetchProfiles}
-            className="px-4 py-2 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-700/60 text-xs font-semibold rounded-xl transition flex items-center gap-2"
+            onClick={handleAdminLogout}
+            className="px-4 py-2 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 text-xs font-semibold rounded-xl text-rose-200 transition"
           >
-            🔄 Actualizar Todo
+            Cerrar Sesión Admin
           </button>
-        </div>
+        </header>
 
-        {actionMsg && (
-          <div className="p-3 bg-purple-950/60 border border-purple-500/40 text-purple-200 rounded-xl text-xs text-center font-medium">
-            {actionMsg}
-          </div>
-        )}
-
-        {/* Buscador */}
-        <div>
-          <input
-            type="text"
-            placeholder="Buscar por nombre o correo..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full max-w-sm px-4 py-2 bg-[#0d0d1b] border border-slate-800/80 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-purple-500"
-          />
-        </div>
-
-        {/* Tabla con la nueva columna de Login */}
-        <div className="bg-[#0d0d1b] border border-slate-800/80 rounded-2xl overflow-hidden shadow-2xl">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-300">
-              <thead className="bg-[#07070f] text-slate-400 uppercase font-semibold border-b border-slate-800/80">
-                <tr>
-                  <th className="p-4">Creador</th>
-                  <th className="p-4">Usuario / Logeo</th>
-                  <th className="p-4">Registrado El</th>
-                  <th className="p-4">Vence El</th>
-                  <th className="p-4">Estado</th>
-                  <th className="p-4 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {loading ? (
-                  <tr>
-                    <td colSpan={6} className="p-8 text-center text-slate-500">
-                      Cargando creadores...
-                    </td>
-                  </tr>
-                ) : filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="p-8 text-center text-slate-500">
-                      Sin registros.
-                    </td>
-                  </tr>
-                ) : (
-                  filtered.map((p) => {
-                    const regDate = p.created_at ? new Date(p.created_at).toLocaleDateString() : '-';
-                    const expDate = p.trial_ends_at ? new Date(p.trial_ends_at).toLocaleDateString() : '-';
-                    const displayLogin = p.email || p.phone || '-';
-
-                    return (
-                      <tr key={p.id} className="hover:bg-slate-800/30 transition">
-                        <td className="p-4 font-semibold text-white">{p.full_name || 'Sin nombre'}</td>
-                        <td className="p-4 text-purple-300 font-mono text-[11px]">{displayLogin}</td>
-                        <td className="p-4 text-slate-400">{regDate}</td>
-                        <td className="p-4 text-amber-400 font-semibold">{expDate}</td>
-                        <td className="p-4">
-                          <span className="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-full text-[10px] font-bold">
-                            PRUEBA (7 DÍAS)
-                          </span>
-                        </td>
-                        <td className="p-4 text-right">
-                          <div className="flex justify-end items-center gap-2">
-                            <button
-                              onClick={() => handleResetPassword(p.email, p.full_name)}
-                              className="px-2.5 py-1.5 bg-purple-900/40 hover:bg-purple-800/60 border border-purple-500/40 text-purple-200 rounded-lg text-[10px] font-medium transition"
-                            >
-                              🔑 Reset
-                            </button>
-                            <button
-                              onClick={() => handleAddDays(p.id, p.trial_ends_at)}
-                              className="px-2.5 py-1.5 bg-purple-950/60 hover:bg-purple-900/80 border border-purple-800/80 text-purple-300 rounded-lg text-[10px] font-medium transition flex items-center gap-1"
-                            >
-                              <span>📅</span> +30 Días
-                            </button>
-                            <button
-                              onClick={() => handleDeleteUser(p.id)}
-                              className="px-2.5 py-1.5 bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800/80 text-rose-300 rounded-lg text-[10px] font-medium transition flex items-center gap-1"
-                            >
-                              <span>🗑️</span> Eliminar
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+        <div className="bg-[#0d0d1b] border border-slate-800/80 p-6 rounded-2xl space-y-4">
+          <h2 className="text-sm font-bold text-slate-200">Estado del Sistema Maestro</h2>
+          <p className="text-xs text-slate-400">
+            Sesión administrativa activa y protegida.
+          </p>
         </div>
       </div>
     </div>
