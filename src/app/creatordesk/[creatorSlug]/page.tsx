@@ -93,7 +93,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [colabFilter, setColabFilter] = useState<string>('todas');
   const [showNewColabModal, setShowNewColabModal] = useState(false);
 
-  // Modales independientes para Información vs Gestión de Estado
+  // Modales independientes
   const [infoModalColab, setInfoModalColab] = useState<any>(null);
   const [statusModalColab, setStatusModalColab] = useState<any>(null);
 
@@ -139,7 +139,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       currency: 'USD',
       amount: 1500,
       paymentDays: 30,
-      status: 'Guión Enviado',
+      status: 'Guión Aprobado',
       isUgc: false,
       deliverables: [
         { type: 'instagram', label: '2 Reels' },
@@ -148,7 +148,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       ],
       statusHistory: {
         'Campaña Recibida': '20/10/2026, 10:15 hs',
-        'Guión Enviado': '25/10/2026, 14:30 hs'
+        'Guión Aprobado': '28/10/2026, 23:10 hs'
       }
     },
     {
@@ -239,6 +239,18 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     setLoading(false);
   }, [params?.creatorSlug]);
 
+  // CÁLCULOS DINÁMICOS DE FINANZAS
+  const pendingColabs = colabs.filter(c => c.status !== 'Factura Cobrada' && c.status !== 'Campaña Cancelada' && c.dealType === 'Pago');
+  const paidColabs = colabs.filter(c => c.status === 'Factura Cobrada' && c.dealType === 'Pago');
+
+  const pendingUsd = pendingColabs.filter(c => c.currency === 'USD').reduce((acc, c) => acc + (c.amount || 0), 0);
+  const pendingPen = pendingColabs.filter(c => c.currency === 'PEN').reduce((acc, c) => acc + (c.amount || 0), 0);
+
+  const paidUsd = paidColabs.filter(c => c.currency === 'USD').reduce((acc, c) => acc + (c.amount || 0), 0);
+  const paidPen = paidColabs.filter(c => c.currency === 'PEN').reduce((acc, c) => acc + (c.amount || 0), 0);
+
+  const activeBrandsNames = colabs.filter(c => c.status !== 'Campaña Cancelada').map(c => c.brand).join(', ');
+
   const handleTaskCheckboxClick = (task: any) => {
     if (task.status === 'completada') return;
     setPendingTask(task);
@@ -260,7 +272,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
   const totalDeliverablesCount = deliverables.reels + deliverables.tiktoks + deliverables.stories + deliverables.facebook + deliverables.youtube + deliverables.evento;
 
-  // Genera fecha y hora exacta
   const getExactNowTimestamp = () => {
     const now = new Date();
     const dateStr = now.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -323,7 +334,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     return 0;
   };
 
-  // Lógica Estricta de Avance de Estado
   const handleStrictStatusChange = (colab: any, targetStatus: string) => {
     setStatusErrorMsg('');
 
@@ -472,7 +482,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
       <main className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
         
-        {/* HOME */}
+        {/* HOME CON MÉTRICAS DINÁMICAS */}
         {activeTab === 'home' && (
           <div className="space-y-6">
             <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-1.5 shadow-xl shadow-purple-100/50">
@@ -483,22 +493,29 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Total Cobrado Dinámico */}
               <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-5 rounded-2xl space-y-2 shadow-lg shadow-purple-100/30">
-                <span className="text-xs text-slate-500 font-semibold">💰 Total Cobrado (Este Mes)</span>
-                <div className="text-2xl font-black text-emerald-600">$ 2,200.00</div>
-                <p className="text-[10px] text-slate-400">1 pago procesado</p>
+                <span className="text-xs text-slate-500 font-semibold block">💰 Total Cobrado</span>
+                <div className="text-xl sm:text-2xl font-black text-emerald-600">
+                  {paidUsd === 0 && paidPen === 0 ? '$ 0.00' : `${paidUsd > 0 ? `$ ${paidUsd}` : ''} ${paidUsd > 0 && paidPen > 0 ? '/' : ''} ${paidPen > 0 ? `S/ ${paidPen}` : ''}`}
+                </div>
+                <p className="text-[10px] text-slate-400">{paidColabs.length} campañas cobradas</p>
               </div>
 
+              {/* Pendiente por Cobrar Dinámico */}
               <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-5 rounded-2xl space-y-2 shadow-lg shadow-purple-100/30">
-                <span className="text-xs text-slate-500 font-semibold">⏳ Pendiente por Cobrar</span>
-                <div className="text-2xl font-black text-amber-500">$ 2,300.00</div>
-                <p className="text-[10px] text-slate-400">2 campañas pendientes</p>
+                <span className="text-xs text-slate-500 font-semibold block">⏳ Pendiente por Cobrar</span>
+                <div className="text-xl sm:text-2xl font-black text-amber-500">
+                  {pendingUsd === 0 && pendingPen === 0 ? '$ 0.00' : `${pendingUsd > 0 ? `$ ${pendingUsd}` : ''} ${pendingUsd > 0 && pendingPen > 0 ? ' / ' : ''} ${pendingPen > 0 ? `S/ ${pendingPen}` : ''}`}
+                </div>
+                <p className="text-[10px] text-slate-400">{pendingColabs.length} campañas en proceso</p>
               </div>
 
+              {/* Colaboraciones Activas Dinámicas */}
               <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-5 rounded-2xl space-y-2 shadow-lg shadow-purple-100/30 sm:col-span-2 lg:col-span-1">
-                <span className="text-xs text-slate-500 font-semibold">📊 Colaboraciones Activas</span>
-                <div className="text-2xl font-black text-purple-600">3 Marcas</div>
-                <p className="text-[10px] text-purple-500 font-medium">Adidas, Aurelia, Cúspide</p>
+                <span className="text-xs text-slate-500 font-semibold block">📊 Colaboraciones Activas</span>
+                <div className="text-2xl font-black text-purple-600">{colabs.filter(c => c.status !== 'Campaña Cancelada').length} Marcas</div>
+                <p className="text-[10px] text-purple-500 font-medium truncate">{activeBrandsNames || 'Sin campañas activas'}</p>
               </div>
             </div>
 
@@ -541,7 +558,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           </div>
         )}
 
-        {/* PESTAÑA COLABS CON UNIFICACIÓN DE BOTÓN Y HORA EXACTA */}
+        {/* PESTAÑA COLABS */}
         {activeTab === 'colabs' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -560,7 +577,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               </button>
             </div>
 
-            {/* Filtros por las 4 Etapas Reales */}
+            {/* Filtros */}
             <div className="flex items-center space-x-2 bg-white/80 p-1.5 rounded-2xl border border-white/60 shadow-sm overflow-x-auto">
               {[
                 { key: 'todas', label: 'Todas' },
@@ -583,7 +600,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               ))}
             </div>
 
-            {/* Tarjetas Rediseñadas */}
+            {/* Tarjetas */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               {filteredColabs.map((c) => {
                 const currentStageIdx = getStageIndex(c.status);
@@ -618,7 +635,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                         </p>
                       </div>
 
-                      {/* Caja Destacada de Precio HERO */}
+                      {/* Precio HERO */}
                       <div className="flex items-center space-x-2">
                         {c.dealType === 'Pago' ? (
                           <div className="px-3.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-700 font-black text-base shadow-2xs">
@@ -646,7 +663,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                       </div>
                     </div>
 
-                    {/* Fila de Entregables e Ícono de Información */}
+                    {/* Entregables + Info */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex flex-wrap gap-1.5">
                         {c.deliverables?.map((d: any, idx: number) => (
@@ -657,7 +674,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                         ))}
                       </div>
 
-                      {/* Botón Ojito para Ver Información */}
                       <button
                         onClick={() => setInfoModalColab(c)}
                         className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs rounded-xl border border-purple-200 transition whitespace-nowrap flex items-center gap-1"
@@ -666,7 +682,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                       </button>
                     </div>
 
-                    {/* Timeline Informativo (Sin evento onClick duplicado) */}
+                    {/* Timeline */}
                     <div className="space-y-2 pt-2 p-3 rounded-2xl bg-slate-50/60 border border-slate-100">
                       <div className="flex justify-between items-center text-[10px] font-semibold">
                         <span className="text-purple-700 font-bold flex items-center gap-1">
@@ -708,7 +724,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
                     <div className="pt-1 flex items-center justify-between text-[11px] text-slate-400">
                       <span>{c.paymentDays > 0 ? `Plazo: ${c.paymentDays} Días` : 'Entrega sin factura'}</span>
-                      {/* ÚNICO BOTÓN PARA AVANZAR ESTADO */}
                       <button
                         onClick={() => {
                           setStatusErrorMsg('');
@@ -761,7 +776,9 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         {activeTab === 'income' && (
           <div className="bg-white/80 p-6 rounded-2xl space-y-3 shadow-xl">
             <h2 className="text-lg font-bold text-slate-800">Control de Ingresos</h2>
-            <div className="text-2xl font-black text-emerald-600">$ 4,500.00</div>
+            <div className="text-2xl font-black text-emerald-600">
+              {paidUsd === 0 && paidPen === 0 ? '$ 0.00' : `${paidUsd > 0 ? `$ ${paidUsd}` : ''} ${paidUsd > 0 && paidPen > 0 ? '/' : ''} ${paidPen > 0 ? `S/ ${paidPen}` : ''}`}
+            </div>
           </div>
         )}
 
@@ -774,7 +791,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
       </main>
 
-      {/* POP-UP 1: MODAL DE INFORMACIÓN COMPLETA */}
+      {/* MODAL INFORMACIÓN */}
       {infoModalColab && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-5 shadow-2xl border border-purple-100 my-8">
@@ -805,7 +822,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               </button>
             </div>
 
-            {/* Datos Económicos */}
             <div className="grid grid-cols-2 gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-xs">
               <div>
                 <span className="text-slate-400 font-semibold block text-[10px]">Monto del Acuerdo</span>
@@ -823,7 +839,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               </div>
             </div>
 
-            {/* Entregables */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700">Entregables Acordados:</label>
               <div className="flex flex-wrap gap-1.5">
@@ -836,7 +851,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               </div>
             </div>
 
-            {/* Detalle UGC Si Aplica */}
             {infoModalColab.isUgc && infoModalColab.ugcDetails && (
               <div className="p-3.5 bg-indigo-50/60 border border-indigo-100 rounded-2xl space-y-2 text-xs">
                 <span className="font-bold text-indigo-900 block flex items-center gap-1 text-[11px]">
@@ -862,7 +876,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         </div>
       )}
 
-      {/* POP-UP 2: MODAL DE GESTIÓN DE ESTADO CON FECHA Y HORA EXACTAS */}
+      {/* MODAL AVANZA ESTADO */}
       {statusModalColab && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl border border-purple-100 my-8">
@@ -1040,7 +1054,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 </div>
               )}
 
-              {/* Selección de Entregables OBLIGATORIA */}
+              {/* Selección de Entregables */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-xs font-semibold text-slate-600">Contenidos a Entregar (Mínimo 1) *</label>
