@@ -531,48 +531,95 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
       <main className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
         
-        {/* HOME */}
+        {/* HOME (RESTABLECIDO COMPLETAMENTE) */}
         {activeTab === 'home' && (
           <div className="space-y-6">
-            <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-1.5 shadow-xl">
+            <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-1.5 shadow-xl shadow-purple-100/50">
               <h2 className="text-2xl font-black text-slate-800">¡Hola, {displayName}! 👋</h2>
-              <p className="text-xs text-slate-500">Resumen actualizado de tus colaboraciones y métricas del mes.</p>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                ¡Qué alegría verte de nuevo! Aquí tienes el resumen actualizado de tus colaboraciones, tareas y métricas de este mes.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-5 rounded-2xl space-y-2 shadow-lg">
+              <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-5 rounded-2xl space-y-2 shadow-lg shadow-purple-100/30">
                 <span className="text-xs text-slate-500 font-semibold block">💰 Total Cobrado</span>
                 <div className="text-2xl font-black text-emerald-600">
                   $ {totalPaidUsdConverted.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
+                <p className="text-[10px] text-slate-400">{paidColabs.length} campañas cobradas</p>
               </div>
 
-              <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-5 rounded-2xl space-y-2 shadow-lg">
+              <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-5 rounded-2xl space-y-2 shadow-lg shadow-purple-100/30">
                 <span className="text-xs text-slate-500 font-semibold block">⏳ Pendiente por Cobrar</span>
                 <div className="text-2xl font-black text-amber-500">
                   $ {totalPendingUsdConverted.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
+                <p className="text-[10px] text-slate-400 font-medium">
+                  {pendingColabs.length} campañas en proceso ($ 1,500 + S/ 500)
+                </p>
               </div>
 
-              <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-5 rounded-2xl space-y-2 shadow-lg sm:col-span-2 lg:col-span-1">
+              <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-5 rounded-2xl space-y-2 shadow-lg shadow-purple-100/30 sm:col-span-2 lg:col-span-1">
                 <span className="text-xs text-slate-500 font-semibold block">📊 Colaboraciones Activas</span>
                 <div className="text-2xl font-black text-purple-600">{colabs.filter(c => c.status !== 'Campaña Cancelada').length} Marcas</div>
+                <p className="text-[10px] text-purple-500 font-medium truncate">{activeBrandsNames || 'Sin campañas activas'}</p>
+              </div>
+            </div>
+
+            <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-2xl space-y-4 shadow-xl shadow-purple-100/40">
+              <div className="flex items-center justify-between px-3.5">
+                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-3">
+                  <span className="text-sm leading-none">✅</span>
+                  <span>Tareas Prioritarias de Hoy</span>
+                </h3>
+                <button
+                  onClick={() => setActiveTab('tasks')}
+                  className="text-xs text-purple-600 font-bold hover:underline"
+                >
+                  Ver todas
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {tasks.map((t) => (
+                  <div key={t.id} className="flex items-center justify-between p-3.5 bg-slate-50/80 border border-slate-200/80 rounded-xl text-xs">
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        checked={t.status === 'completada'}
+                        disabled={t.status === 'completada'}
+                        onChange={() => handleTaskCheckboxClick(t)}
+                        className="rounded border-slate-300 text-purple-600 focus:ring-purple-400 cursor-pointer disabled:cursor-not-allowed"
+                      />
+                      <span className={t.status === 'completada' ? 'line-through text-slate-400 font-medium' : 'text-slate-800 font-medium'}>
+                        {t.title}
+                      </span>
+                    </div>
+                    <span className="px-2 py-0.5 bg-purple-100 border border-purple-200 text-purple-700 text-[10px] rounded-md font-semibold">
+                      {t.brand}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         )}
 
-        {/* COLABS */}
+        {/* COLABS (RESTABLECIDO COMPLETAMENTE) */}
         {activeTab === 'colabs' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold text-slate-800">Gestión de Colaboraciones</h2>
-                <p className="text-xs text-slate-500">Supervisa el flujo de tus campañas en tiempo real.</p>
+                <p className="text-xs text-slate-500">Supervisa el flujo de tus campañas y redes sociales en tiempo real.</p>
               </div>
               <button
-                onClick={() => setShowNewColabModal(true)}
-                className="px-4 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold text-xs rounded-xl shadow-md"
+                onClick={() => {
+                  setDeliverableError('');
+                  setShowNewColabModal(true);
+                }}
+                className="px-4 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-200 transition"
               >
                 + Nueva Colaboración
               </button>
@@ -590,7 +637,9 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                   key={f.key}
                   onClick={() => setColabFilter(f.key)}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-                    colabFilter === f.key ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' : 'text-slate-500'
+                    colabFilter === f.key
+                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   {f.label}
@@ -599,19 +648,137 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              {filteredColabs.map((c) => (
-                <div key={c.id} className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl">
-                  <div className="flex items-start justify-between border-b border-slate-100 pb-3">
-                    <div>
-                      <h3 className="font-black text-slate-800 text-lg">{c.brand}</h3>
-                      <p className="text-xs font-semibold text-purple-600">👤 {c.contactName}</p>
+              {filteredColabs.map((c) => {
+                const currentStageIdx = getStageIndex(c.status);
+                const lastDateWithTime = c.statusHistory?.[c.status] || getExactNowTimestamp();
+                const isNegociacion = currentStageIdx === 0;
+
+                return (
+                  <div
+                    key={c.id}
+                    className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl shadow-purple-100/30 hover:border-purple-300 transition relative"
+                  >
+                    <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <h3 className="font-black text-slate-800 text-lg">{c.brand}</h3>
+                          <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-extrabold border ${
+                            c.dealType === 'Canje'
+                              ? 'bg-pink-50 border-pink-200 text-pink-600'
+                              : 'bg-purple-50 border-purple-200 text-purple-600'
+                          }`}>
+                            {c.dealType}
+                          </span>
+                          {c.isUgc && (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-indigo-100 border border-indigo-200 text-indigo-700">
+                              ⚡ UGC
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs font-semibold text-purple-600 flex items-center gap-1">
+                          👤 <span>{c.contactName || 'Sin contacto asignado'}</span>
+                        </p>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        {c.dealType === 'Pago' ? (
+                          <div className="px-3.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-700 font-black text-base shadow-2xs">
+                            {c.currency === 'USD' ? `$ ${c.amount}` : `S/ ${c.amount}`}
+                          </div>
+                        ) : (
+                          <div className="px-3 py-1 bg-pink-50 border border-pink-200 rounded-xl text-xs font-black text-pink-600">
+                            Canje Directo
+                          </div>
+                        )}
+
+                        {isNegociacion && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setColabToDelete(c);
+                            }}
+                            className="p-1.5 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 transition"
+                            title="Borrar colaboración (Solo en Negociación)"
+                          >
+                            <TrashIcon />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div className="px-3.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-700 font-black text-base">
-                      {c.currency === 'USD' ? `$ ${c.amount}` : `S/ ${c.amount}`}
+
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex flex-wrap gap-1.5">
+                        {c.deliverables?.map((d: any, idx: number) => (
+                          <span key={idx} className="px-2.5 py-1 bg-slate-50 border border-slate-200 text-slate-700 font-semibold text-[11px] rounded-lg flex items-center gap-1.5 shadow-2xs">
+                            {renderSocialIcon(d.type)}
+                            <span>{d.label}</span>
+                          </span>
+                        ))}
+                      </div>
+
+                      <button
+                        onClick={() => setInfoModalColab(c)}
+                        className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs rounded-xl border border-purple-200 transition whitespace-nowrap flex items-center gap-1"
+                      >
+                        👁️ Info
+                      </button>
+                    </div>
+
+                    <div className="space-y-2 pt-2 p-3 rounded-2xl bg-slate-50/60 border border-slate-100">
+                      <div className="flex justify-between items-center text-[10px] font-semibold">
+                        <span className="text-purple-700 font-bold flex items-center gap-1">
+                          📌 Estado Actual: <span>{c.status}</span>
+                        </span>
+                        <span className="text-slate-400">Último cambio: <strong className="text-purple-600 font-bold">{lastDateWithTime}</strong></span>
+                      </div>
+
+                      <div className="relative flex items-center justify-between pt-1">
+                        <div className="absolute top-1/2 left-2 right-2 -translate-y-1/2 h-0.5 bg-slate-200 -z-0"></div>
+                        <div
+                          className="absolute top-1/2 left-2 -translate-y-1/2 h-0.5 bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500 -z-0"
+                          style={{ width: `${(currentStageIdx / 3) * 100}%` }}
+                        ></div>
+
+                        {CAMPAIGN_STAGES.map((stg, idx) => {
+                          const isCompleted = idx <= currentStageIdx;
+                          return (
+                            <div key={stg.stage} className="relative z-10 flex flex-col items-center">
+                              <div
+                                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                                  isCompleted
+                                    ? 'bg-gradient-to-tr from-purple-500 to-pink-500 text-white shadow-md shadow-purple-200 ring-2 ring-white'
+                                    : 'bg-slate-100 text-slate-400 border border-slate-300'
+                                }`}
+                              >
+                                {isCompleted ? '✓' : idx + 1}
+                              </div>
+                              <span className={`text-[10px] mt-1 font-semibold ${
+                                isCompleted ? 'text-purple-700 font-bold' : 'text-slate-400'
+                              }`}>
+                                {stg.stage}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="pt-1 flex items-center justify-between text-[11px] text-slate-400">
+                      <span>{c.paymentDays > 0 ? `Plazo: ${c.paymentDays} Días` : 'Entrega sin factura'}</span>
+                      <button
+                        onClick={() => {
+                          setStatusErrorMsg('');
+                          setStatusModalColab(c);
+                        }}
+                        className="px-3.5 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-200 transition flex items-center gap-1"
+                      >
+                        ⚙️ Avanzar Estado
+                      </button>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -664,7 +831,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               </div>
             </div>
 
-            {/* BARRA DE FILTROS CATEGORÍAS */}
             <div className="flex items-center space-x-2 bg-white/80 p-1.5 rounded-2xl border border-white/60 shadow-sm overflow-x-auto">
               {[
                 { key: 'todos', label: 'Todos los Eventos' },
@@ -817,7 +983,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
       </main>
 
-      {/* MODAL CREAR EVENTO */}
+      {/* MODALES */}
       {createType === 'evento' && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl border border-purple-100">
