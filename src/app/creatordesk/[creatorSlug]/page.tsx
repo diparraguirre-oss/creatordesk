@@ -72,7 +72,8 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [user, setUser] = useState<any>(null);
   const [displayName, setDisplayName] = useState<string>('');
   const [daysRemaining, setDaysRemaining] = useState<number>(7);
-  const [activeTab, setActiveTab] = useState<'home' | 'colabs' | 'calendar' | 'tasks' | 'income' | 'mediakit'>('tasks');
+  const [isProUser, setIsProUser] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<'home' | 'colabs' | 'calendar' | 'tasks' | 'income' | 'mediakit' | 'autobot'>('home');
 
   const [colabFilter, setColabFilter] = useState<string>('todas');
   const [showNewColabModal, setShowNewColabModal] = useState(false);
@@ -96,7 +97,21 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [deliveryFormat, setDeliveryFormat] = useState('Vertical 9:16 (Reels/TikTok)');
   const [deliverableError, setDeliverableError] = useState('');
 
-  // ESTADOS MÓDULO TAREAS COMPLETO
+  // ESTADOS MÓDULO AUTOBOT (EXCLUSIVO PLAN PRO)
+  const [botPlatformTab, setBotPlatformTab] = useState<'instagram' | 'tiktok'>('instagram');
+  const [postUrlInput, setPostUrlInput] = useState('');
+  const [isAuditing, setIsAuditing] = useState(false);
+  const [auditResults, setAuditResults] = useState<any[] | null>(null);
+  
+  const [newParticipantInput, setNewParticipantInput] = useState('');
+  const [igPodParticipants, setIgPodParticipants] = useState<string[]>([
+    '@creadora_laura', '@sofia_vlogs', '@paula_fashion', '@camila_lifestyle', '@valeria_ugc'
+  ]);
+  const [ttPodParticipants, setTtPodParticipants] = useState<string[]>([
+    '@tiktok_laura', '@sofia_beauty', '@paula_trends', '@valeria_ugc_tt'
+  ]);
+
+  // ESTADOS MÓDULO TAREAS
   const [taskStatusFilter, setTaskStatusFilter] = useState<'todas' | 'pendientes' | 'completadas'>('todas');
   const [taskCategoryFilter, setTaskCategoryFilter] = useState<string>('todas');
   const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
@@ -110,7 +125,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [pendingTask, setPendingTask] = useState<any>(null);
   const [showTaskConfirmModal, setShowTaskConfirmModal] = useState(false);
 
-  // NAVEGACIÓN Y ESTADOS DEL CALENDARIO
+  // ESTADOS CALENDARIO
   const [currentDate, setCurrentDate] = useState(new Date(2026, 9, 29)); // Octubre 2026
   const [selectedDay, setSelectedDay] = useState<number>(29);
   const [calendarFilter, setCalendarFilter] = useState<'todos' | 'grabacion' | 'entrega' | 'reunion' | 'pago'>('todos');
@@ -127,7 +142,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [locationAddress, setLocationAddress] = useState('');
 
   const [isGoogleConnected, setIsGoogleConnected] = useState(false);
-
   const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
 
   const [tasks, setTasks] = useState([
@@ -255,6 +269,14 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         const rawSlug = parsed.slug || params?.creatorSlug || '';
         const formattedName = parsed.full_name || rawSlug.split('.').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
         setDisplayName(formattedName || 'Creador');
+
+        // VALIDACIÓN EXCLUSIVA PLAN PRO PARA MARIA PINCHI
+        const isMariaPinchi = (formattedName.toLowerCase().includes('maria pinchi') || rawSlug.toLowerCase().includes('maria.pinchi') || rawSlug.toLowerCase().includes('maria_pinchi') || rawSlug.toLowerCase().includes('mariapinchi'));
+        if (isMariaPinchi) {
+          setIsProUser(true);
+        } else {
+          setIsProUser(false);
+        }
 
         const createdTime = parsed.created_at ? new Date(parsed.created_at) : new Date();
         const expiresTime = new Date(createdTime.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -392,7 +414,73 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     setCalendarEvents(calendarEvents.filter(e => e.id !== eventId));
   };
 
-  // MÓDULO DE TAREAS - MANEJO Y FILTRADO
+  // LOGICA AUTOBOT / ENGAGEMENT POD
+  const handleAddParticipant = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newParticipantInput.trim()) return;
+
+    let handle = newParticipantInput.trim();
+    if (!handle.startsWith('@')) handle = `@${handle}`;
+
+    if (botPlatformTab === 'instagram') {
+      if (!igPodParticipants.includes(handle)) setIgPodParticipants([...igPodParticipants, handle]);
+    } else {
+      if (!ttPodParticipants.includes(handle)) setTtPodParticipants([...ttPodParticipants, handle]);
+    }
+    setNewParticipantInput('');
+  };
+
+  const handleRemoveParticipant = (handleToRemove: string) => {
+    if (botPlatformTab === 'instagram') {
+      setIgPodParticipants(igPodParticipants.filter(p => p !== handleToRemove));
+    } else {
+      setTtPodParticipants(ttPodParticipants.filter(p => p !== handleToRemove));
+    }
+  };
+
+  const handleRunAudit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!postUrlInput) return;
+
+    setIsAuditing(true);
+    setAuditResults(null);
+
+    setTimeout(() => {
+      const activeList = botPlatformTab === 'instagram' ? igPodParticipants : ttPodParticipants;
+      const sampleComments = [
+        '¡Súper recomendada esta marca! 🔥',
+        'Me encantó el video 😍',
+        '¡Súper dato, guardado!',
+        'Amo tus contenidos siempre 👏'
+      ];
+
+      const simulated = activeList.map((user, idx) => {
+        const statusRand = idx % 3;
+        let status: 'commented' | 'liked' | 'pending' = 'commented';
+        let commentText = sampleComments[idx % sampleComments.length];
+
+        if (statusRand === 1) {
+          status = 'liked';
+          commentText = 'Sin comentario detectado';
+        } else if (statusRand === 2) {
+          status = 'pending';
+          commentText = 'Sin interacción';
+        }
+
+        return {
+          user,
+          status,
+          commentText,
+          time: 'Hace 15 min'
+        };
+      });
+
+      setAuditResults(simulated);
+      setIsAuditing(false);
+    }, 1500);
+  };
+
+  // MÓDULO DE TAREAS
   const handleTaskCheckboxClick = (task: any) => {
     if (task.status === 'completada') return;
     setPendingTask(task);
@@ -647,8 +735,12 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           </div>
 
           <div className="flex items-center space-x-3">
-            <span className="hidden sm:inline-block px-3 py-1 bg-purple-100/80 border border-purple-200 text-purple-700 text-[11px] font-bold rounded-lg uppercase">
-              {daysRemaining > 0 ? `Prueba (${daysRemaining} Días)` : 'Plan Activo'}
+            <span className={`hidden sm:inline-block px-3 py-1 border text-[11px] font-bold rounded-lg uppercase ${
+              isProUser
+                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-transparent shadow-xs'
+                : 'bg-purple-100/80 border-purple-200 text-purple-700'
+            }`}>
+              {isProUser ? 'Plan PRO VIP' : daysRemaining > 0 ? `Prueba (${daysRemaining} Días)` : 'Plan Activo'}
             </span>
             <button
               onClick={() => {
@@ -1111,7 +1203,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           </div>
         )}
 
-        {/* TAREAS - MÓDULO REDISEÑADO COMPLETO */}
+        {/* TAREAS */}
         {activeTab === 'tasks' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -1129,7 +1221,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               </button>
             </div>
 
-            {/* RESUMEN DE INDICADORES DE TAREAS */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-4 rounded-2xl shadow-md space-y-1">
                 <span className="text-[11px] font-bold text-slate-400">Total Tareas</span>
@@ -1149,7 +1240,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               </div>
             </div>
 
-            {/* FILTROS Y CATEGORÍAS */}
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 bg-white/80 p-2 rounded-2xl border border-white/60 shadow-sm">
               <div className="flex items-center space-x-1.5 overflow-x-auto w-full md:w-auto">
                 {[
@@ -1186,7 +1276,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               </div>
             </div>
 
-            {/* LISTA DE TAREAS DETALLADA */}
             <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-3 shadow-xl">
               {filteredTasks.length === 0 ? (
                 <div className="p-12 text-center space-y-2">
@@ -1237,6 +1326,186 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                   );
                 })
               )}
+            </div>
+          </div>
+        )}
+
+        {/* AUTOBOT / AUTOMATIZACIONES (SOLO DISPONIBLE PARA MARIA PINCHI / PLAN PRO) */}
+        {activeTab === 'autobot' && isProUser && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <h2 className="text-xl font-bold text-slate-800">AutoBot & Engagement Pods</h2>
+                  <span className="px-2.5 py-0.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-black text-[10px] rounded-md uppercase tracking-wider shadow-2xs">
+                    PRO VIP
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">Verifica la interacción de tu grupo de creadores en tiempo real.</p>
+              </div>
+
+              {/* PESTAÑAS DE PLATAFORMA INSTAGRAM VS TIKTOK */}
+              <div className="flex items-center space-x-2 bg-white/80 p-1.5 rounded-2xl border border-white/60 shadow-sm">
+                <button
+                  onClick={() => {
+                    setBotPlatformTab('instagram');
+                    setAuditResults(null);
+                  }}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                    botPlatformTab === 'instagram'
+                      ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <InstagramIcon />
+                  <span>Instagram</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setBotPlatformTab('tiktok');
+                    setAuditResults(null);
+                  }}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                    botPlatformTab === 'tiktok'
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <TikTokIcon />
+                  <span>TikTok</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* CONFIGURACIÓN DEL GRUPO DE APOYO (POD) */}
+              <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-2">
+                    <span>👥</span>
+                    <span>Lista de Pod ({botPlatformTab === 'instagram' ? 'IG' : 'TikTok'})</span>
+                  </h3>
+                  <span className="text-xs font-bold text-purple-600">
+                    {botPlatformTab === 'instagram' ? igPodParticipants.length : ttPodParticipants.length} Miembros
+                  </span>
+                </div>
+
+                <form onSubmit={handleAddParticipant} className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Ej: @creadora_laura"
+                    value={newParticipantInput}
+                    onChange={(e) => setNewParticipantInput(e.target.value)}
+                    className="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-purple-300"
+                  />
+                  <button
+                    type="submit"
+                    className="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-xs transition"
+                  >
+                    + Añadir
+                  </button>
+                </form>
+
+                <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+                  {(botPlatformTab === 'instagram' ? igPodParticipants : ttPodParticipants).map((handle) => (
+                    <div key={handle} className="flex items-center justify-between p-2.5 bg-slate-50/80 rounded-xl border border-slate-100 text-xs font-bold text-slate-700">
+                      <span className="flex items-center gap-2">
+                        {botPlatformTab === 'instagram' ? <InstagramIcon /> : <TikTokIcon />}
+                        <span>{handle}</span>
+                      </span>
+                      <button
+                        onClick={() => handleRemoveParticipant(handle)}
+                        className="text-slate-300 hover:text-rose-500 font-bold p-1 text-xs"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* PANEL DE AUDITORÍA Y VERIFICACIÓN */}
+              <div className="lg:col-span-2 bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-5 shadow-xl">
+                <div className="border-b border-slate-100 pb-3">
+                  <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-2">
+                    <span>🔍</span>
+                    <span>Auditar Interacción en Contenido</span>
+                  </h3>
+                  <p className="text-xs text-slate-400">Ingresa el enlace del Reel/Post de {botPlatformTab === 'instagram' ? 'Instagram' : 'TikTok'} para validar si el grupo ya comentó.</p>
+                </div>
+
+                <form onSubmit={handleRunAudit} className="flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="url"
+                    required
+                    placeholder={botPlatformTab === 'instagram' ? 'https://www.instagram.com/reel/...' : 'https://www.tiktok.com/@user/video/...'}
+                    value={postUrlInput}
+                    onChange={(e) => setPostUrlInput(e.target.value)}
+                    className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold outline-none focus:border-purple-300"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isAuditing}
+                    className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-extrabold text-xs rounded-2xl shadow-lg transition flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50"
+                  >
+                    {isAuditing ? (
+                      <>
+                        <span className="animate-spin text-sm">⏳</span>
+                        <span>Analizando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>⚡ Validar Interacciones</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+
+                {auditResults ? (
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-xs font-bold text-slate-700">Resultados de Auditoría:</span>
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                        ✓ {auditResults.filter(r => r.status === 'commented').length} de {auditResults.length} Cumplieron
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                      {auditResults.map((res, idx) => (
+                        <div key={idx} className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/80 flex items-center justify-between text-xs">
+                          <div className="space-y-0.5">
+                            <span className="font-extrabold text-slate-800 block">{res.user}</span>
+                            <span className="text-[11px] text-slate-500 italic">"{res.commentText}"</span>
+                          </div>
+
+                          <div>
+                            {res.status === 'commented' && (
+                              <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-extrabold text-[10px] rounded-lg border border-emerald-200">
+                                ✅ Comentado
+                              </span>
+                            )}
+                            {res.status === 'liked' && (
+                              <span className="px-2.5 py-1 bg-amber-100 text-amber-800 font-extrabold text-[10px] rounded-lg border border-amber-200">
+                                ❤️ Solo Like
+                              </span>
+                            )}
+                            {res.status === 'pending' && (
+                              <span className="px-2.5 py-1 bg-rose-100 text-rose-800 font-extrabold text-[10px] rounded-lg border border-rose-200">
+                                ❌ Sin Comentar
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-10 border border-dashed border-slate-200 rounded-3xl text-center space-y-2">
+                    <span className="text-2xl block">🤖</span>
+                    <p className="text-xs text-slate-400 font-medium">Ingresa un enlace arriba y presiona "Validar Interacciones" para iniciar el escaneo del grupo.</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -1929,7 +2198,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         </div>
       )}
 
-      {/* MENÚ FLOTANTE INFERIOR NAVEGABLE */}
+      {/* MENÚ FLOTANTE INFERIOR DINÁMICO (DISPONIBILIDAD DE AUTOBOT SOLO SI ISPROUSER ES TRUE) */}
       <nav className="fixed bottom-5 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-2xl border border-white/80 px-3 py-2 rounded-2xl shadow-2xl shadow-purple-200/60 flex items-center space-x-1 sm:space-x-2 z-30">
         {[
           { key: 'home', label: 'Inicio', icon: '🏠' },
@@ -1937,17 +2206,23 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           { key: 'calendar', label: 'Agenda', icon: '📅' },
           { key: 'tasks', label: 'Tareas', icon: '📝' },
           { key: 'income', label: 'Ingresos', icon: '💰' },
-          { key: 'mediakit', label: 'MediaKit', icon: '📁' }
+          { key: 'mediakit', label: 'MediaKit', icon: '📁' },
+          ...(isProUser ? [{ key: 'autobot', label: 'AutoBot', icon: '🤖', isPro: true }] : [])
         ].map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key as any)}
-            className={`flex flex-col items-center px-3 py-1.5 rounded-xl transition text-[11px] font-bold ${
+            className={`flex flex-col items-center px-3 py-1.5 rounded-xl transition text-[11px] font-bold relative ${
               activeTab === tab.key ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md' : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             <span className="text-sm">{tab.icon}</span>
-            <span>{tab.label}</span>
+            <span className="flex items-center gap-1">
+              <span>{tab.label}</span>
+              {(tab as any).isPro && (
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+              )}
+            </span>
           </button>
         ))}
       </nav>
