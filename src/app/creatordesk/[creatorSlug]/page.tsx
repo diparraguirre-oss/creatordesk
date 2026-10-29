@@ -41,7 +41,6 @@ const TrashIcon = () => (
   </svg>
 );
 
-// Flujo ordenado secuencial estricto de las 13 fases
 export const STATUS_SEQUENCE = [
   'Campaña Recibida',
   'Campaña Aceptada',
@@ -89,18 +88,14 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [daysRemaining, setDaysRemaining] = useState<number>(7);
   const [activeTab, setActiveTab] = useState<'home' | 'colabs' | 'calendar' | 'tasks' | 'income' | 'mediakit'>('colabs');
 
-  // Filtros de Colabs
   const [colabFilter, setColabFilter] = useState<string>('todas');
   const [showNewColabModal, setShowNewColabModal] = useState(false);
 
-  // Modales independientes
   const [infoModalColab, setInfoModalColab] = useState<any>(null);
   const [statusModalColab, setStatusModalColab] = useState<any>(null);
 
-  // Alerta de validación de estado
   const [statusErrorMsg, setStatusErrorMsg] = useState('');
 
-  // Formulario Nueva Colaboración
   const [brandName, setBrandName] = useState('');
   const [contactName, setContactName] = useState('');
   const [dealType, setDealType] = useState<'Pago' | 'Canje'>('Pago');
@@ -109,7 +104,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [paymentDays, setPaymentDays] = useState('30');
   const [deliverables, setDeliverables] = useState({ reels: 0, tiktoks: 0, stories: 0, facebook: 0, youtube: 0, evento: 0 });
 
-  // Campos UGC
   const [isUgc, setIsUgc] = useState(false);
   const [usageRightsDays, setUsageRightsDays] = useState('30 días');
   const [includesRawFootage, setIncludesRawFootage] = useState(false);
@@ -119,7 +113,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
   const [deliverableError, setDeliverableError] = useState('');
 
-  // Modal confirmación tareas y borrado
   const [pendingTask, setPendingTask] = useState<any>(null);
   const [showTaskConfirmModal, setShowTaskConfirmModal] = useState(false);
   const [colabToDelete, setColabToDelete] = useState<any>(null);
@@ -239,7 +232,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     setLoading(false);
   }, [params?.creatorSlug]);
 
-  // CÁLCULOS DINÁMICOS DE FINANZAS
   const pendingColabs = colabs.filter(c => c.status !== 'Factura Cobrada' && c.status !== 'Campaña Cancelada' && c.dealType === 'Pago');
   const paidColabs = colabs.filter(c => c.status === 'Factura Cobrada' && c.dealType === 'Pago');
 
@@ -493,7 +485,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Total Cobrado Dinámico */}
               <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-5 rounded-2xl space-y-2 shadow-lg shadow-purple-100/30">
                 <span className="text-xs text-slate-500 font-semibold block">💰 Total Cobrado</span>
                 <div className="text-xl sm:text-2xl font-black text-emerald-600">
@@ -502,7 +493,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 <p className="text-[10px] text-slate-400">{paidColabs.length} campañas cobradas</p>
               </div>
 
-              {/* Pendiente por Cobrar Dinámico */}
               <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-5 rounded-2xl space-y-2 shadow-lg shadow-purple-100/30">
                 <span className="text-xs text-slate-500 font-semibold block">⏳ Pendiente por Cobrar</span>
                 <div className="text-xl sm:text-2xl font-black text-amber-500">
@@ -511,7 +501,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 <p className="text-[10px] text-slate-400">{pendingColabs.length} campañas en proceso</p>
               </div>
 
-              {/* Colaboraciones Activas Dinámicas */}
               <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-5 rounded-2xl space-y-2 shadow-lg shadow-purple-100/30 sm:col-span-2 lg:col-span-1">
                 <span className="text-xs text-slate-500 font-semibold block">📊 Colaboraciones Activas</span>
                 <div className="text-2xl font-black text-purple-600">{colabs.filter(c => c.status !== 'Campaña Cancelada').length} Marcas</div>
@@ -577,7 +566,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               </button>
             </div>
 
-            {/* Filtros */}
             <div className="flex items-center space-x-2 bg-white/80 p-1.5 rounded-2xl border border-white/60 shadow-sm overflow-x-auto">
               {[
                 { key: 'todas', label: 'Todas' },
@@ -600,7 +588,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               ))}
             </div>
 
-            {/* Tarjetas */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               {filteredColabs.map((c) => {
                 const currentStageIdx = getStageIndex(c.status);
@@ -612,7 +599,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                     key={c.id}
                     className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl shadow-purple-100/30 hover:border-purple-300 transition relative"
                   >
-                    {/* Encabezado Principal */}
                     <div className="flex items-start justify-between border-b border-slate-100 pb-3">
                       <div className="space-y-1">
                         <div className="flex items-center space-x-2">
@@ -635,7 +621,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                         </p>
                       </div>
 
-                      {/* Precio HERO */}
                       <div className="flex items-center space-x-2">
                         {c.dealType === 'Pago' ? (
                           <div className="px-3.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-700 font-black text-base shadow-2xs">
@@ -663,7 +648,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                       </div>
                     </div>
 
-                    {/* Entregables + Info */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex flex-wrap gap-1.5">
                         {c.deliverables?.map((d: any, idx: number) => (
@@ -682,7 +666,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                       </button>
                     </div>
 
-                    {/* Timeline */}
                     <div className="space-y-2 pt-2 p-3 rounded-2xl bg-slate-50/60 border border-slate-100">
                       <div className="flex justify-between items-center text-[10px] font-semibold">
                         <span className="text-purple-700 font-bold flex items-center gap-1">
@@ -1054,7 +1037,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 </div>
               )}
 
-              {/* Selección de Entregables */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-xs font-semibold text-slate-600">Contenidos a Entregar (Mínimo 1) *</label>
@@ -1136,7 +1118,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 </div>
               </div>
 
-              {/* SWITCH Y OPCIONES UGC */}
               <div className="p-3 bg-purple-50/60 rounded-2xl border border-purple-100 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
@@ -1253,7 +1234,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         </div>
       )}
 
-      {/* Pop-up de Confirmación de Borrado */}
+      {/* Pop-up Borrado */}
       {colabToDelete && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-3xl max-w-sm w-full text-center space-y-4 shadow-2xl border border-rose-100">
@@ -1284,7 +1265,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         </div>
       )}
 
-      {/* Pop-up de Confirmación de Tarea */}
+      {/* Pop-up Tarea */}
       {showTaskConfirmModal && pendingTask && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-3xl max-w-sm w-full text-center space-y-4 shadow-2xl border border-purple-100">
