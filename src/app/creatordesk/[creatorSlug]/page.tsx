@@ -147,8 +147,8 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         { type: 'evento', label: '1 Evento' }
       ],
       statusHistory: {
-        'Campaña Recibida': '20/10/2026',
-        'Guión Enviado': '25/10/2026'
+        'Campaña Recibida': '20/10/2026, 10:15 hs',
+        'Guión Enviado': '25/10/2026, 14:30 hs'
       }
     },
     {
@@ -173,8 +173,8 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         { type: 'facebook', label: '1 Post' }
       ],
       statusHistory: {
-        'Campaña Recibida': '22/10/2026',
-        'En Grabación': '27/10/2026'
+        'Campaña Recibida': '22/10/2026, 09:00 hs',
+        'En Grabación': '27/10/2026, 16:45 hs'
       }
     },
     {
@@ -199,7 +199,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         { type: 'tiktok', label: '1 TikToks' }
       ],
       statusHistory: {
-        'Campaña Recibida': '28/10/2026'
+        'Campaña Recibida': '28/10/2026, 11:20 hs'
       }
     }
   ]);
@@ -260,6 +260,14 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
   const totalDeliverablesCount = deliverables.reels + deliverables.tiktoks + deliverables.stories + deliverables.facebook + deliverables.youtube + deliverables.evento;
 
+  // Genera fecha y hora exacta
+  const getExactNowTimestamp = () => {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    return `${dateStr}, ${timeStr} hs`;
+  };
+
   const handleCreateColab = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -279,7 +287,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     if (deliverables.youtube > 0) delivArray.push({ type: 'youtube', label: `${deliverables.youtube} YouTube` });
     if (deliverables.evento > 0) delivArray.push({ type: 'evento', label: `${deliverables.evento} Eventos` });
 
-    const todayStr = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const nowTimestamp = getExactNowTimestamp();
 
     const newColabObj = {
       id: String(Date.now()),
@@ -294,7 +302,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       ugcDetails: isUgc ? { usageRightsDays, includesRawFootage, allowAdsUsage, categoryExclusivity, deliveryFormat } : null,
       deliverables: delivArray,
       statusHistory: {
-        'Campaña Recibida': todayStr
+        'Campaña Recibida': nowTimestamp
       }
     };
 
@@ -321,37 +329,31 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
     const currentStatus = colab.status;
 
-    // 1. Si está cancelada, no se puede modificar
     if (currentStatus === 'Campaña Cancelada' && targetStatus !== 'Campaña Cancelada') {
       setStatusErrorMsg('La campaña está cancelada. No es posible avanzar a otras etapas.');
       return;
     }
 
-    // 2. Opción especial: Marcar u Omitir Cancelación
     if (targetStatus === 'Campaña Cancelada') {
       applyStatusUpdate(colab.id, targetStatus);
       return;
     }
 
-    // 3. Casos de Guión Observado
     if (currentStatus === 'Guión Observado' && targetStatus !== 'Guión Aprobado' && targetStatus !== 'Guión Enviado') {
       setStatusErrorMsg('El guión está observado. Debes corregirlo y aprobarlo ("Guión Aprobado") antes de pasar a producción.');
       return;
     }
 
-    // 4. Casos de Video Observado
     if (currentStatus === 'Video Observado' && targetStatus !== 'Video Aprobado' && targetStatus !== 'En Edición') {
       setStatusErrorMsg('El video está observado. Debes aprobarlo ("Video Aprobado") antes de poder publicarlo o facturar.');
       return;
     }
 
-    // 5. Permitir estados de observación específicos
     if (targetStatus === 'Guión Observado' || targetStatus === 'Video Observado') {
       applyStatusUpdate(colab.id, targetStatus);
       return;
     }
 
-    // 6. Validar secuencia paso a paso
     const currentIdx = STATUS_SEQUENCE.indexOf(currentStatus);
     const targetIdx = STATUS_SEQUENCE.indexOf(targetStatus);
 
@@ -366,18 +368,18 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   };
 
   const applyStatusUpdate = (colabId: string, newStatus: string) => {
-    const todayStr = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const nowTimestamp = getExactNowTimestamp();
 
     setColabs(colabs.map(c => {
       if (c.id === colabId) {
-        const updatedHistory = { ...c.statusHistory, [newStatus]: todayStr };
+        const updatedHistory = { ...c.statusHistory, [newStatus]: nowTimestamp };
         return { ...c, status: newStatus, statusHistory: updatedHistory };
       }
       return c;
     }));
 
     if (statusModalColab && statusModalColab.id === colabId) {
-      const updatedHistory = { ...statusModalColab.statusHistory, [newStatus]: todayStr };
+      const updatedHistory = { ...statusModalColab.statusHistory, [newStatus]: nowTimestamp };
       setStatusModalColab({ ...statusModalColab, status: newStatus, statusHistory: updatedHistory });
     }
   };
@@ -539,7 +541,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           </div>
         )}
 
-        {/* PESTAÑA COLABS REDISEÑADA */}
+        {/* PESTAÑA COLABS CON UNIFICACIÓN DE BOTÓN Y HORA EXACTA */}
         {activeTab === 'colabs' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -585,7 +587,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               {filteredColabs.map((c) => {
                 const currentStageIdx = getStageIndex(c.status);
-                const lastDate = c.statusHistory?.[c.status] || 'Hoy';
+                const lastDateWithTime = c.statusHistory?.[c.status] || getExactNowTimestamp();
                 const isNegociacion = currentStageIdx === 0;
 
                 return (
@@ -664,19 +666,13 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                       </button>
                     </div>
 
-                    {/* Timeline de Estado Interactiva */}
-                    <div
-                      onClick={() => {
-                        setStatusErrorMsg('');
-                        setStatusModalColab(c);
-                      }}
-                      className="space-y-2 pt-2 cursor-pointer p-3 rounded-2xl bg-slate-50/60 border border-slate-100 hover:border-purple-200 transition"
-                    >
+                    {/* Timeline Informativo (Sin evento onClick duplicado) */}
+                    <div className="space-y-2 pt-2 p-3 rounded-2xl bg-slate-50/60 border border-slate-100">
                       <div className="flex justify-between items-center text-[10px] font-semibold">
                         <span className="text-purple-700 font-bold flex items-center gap-1">
-                          📌 Estado Actual: <span className="underline">{c.status}</span>
+                          📌 Estado Actual: <span>{c.status}</span>
                         </span>
-                        <span className="text-slate-400">Último cambio: <strong className="text-slate-600">{lastDate}</strong></span>
+                        <span className="text-slate-400">Último cambio: <strong className="text-purple-600 font-bold">{lastDateWithTime}</strong></span>
                       </div>
 
                       <div className="relative flex items-center justify-between pt-1">
@@ -712,12 +708,13 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
                     <div className="pt-1 flex items-center justify-between text-[11px] text-slate-400">
                       <span>{c.paymentDays > 0 ? `Plazo: ${c.paymentDays} Días` : 'Entrega sin factura'}</span>
+                      {/* ÚNICO BOTÓN PARA AVANZAR ESTADO */}
                       <button
                         onClick={() => {
                           setStatusErrorMsg('');
                           setStatusModalColab(c);
                         }}
-                        className="font-bold text-purple-600 hover:underline"
+                        className="px-3.5 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-200 transition flex items-center gap-1"
                       >
                         ⚙️ Avanzar Estado
                       </button>
@@ -777,7 +774,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
       </main>
 
-      {/* POP-UP 1: MODAL DE INFORMACIÓN COMPLETA (Ojito 👁️) */}
+      {/* POP-UP 1: MODAL DE INFORMACIÓN COMPLETA */}
       {infoModalColab && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-5 shadow-2xl border border-purple-100 my-8">
@@ -865,7 +862,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         </div>
       )}
 
-      {/* POP-UP 2: MODAL DE GESTIÓN DE ESTADO CON LÓGICA ESTRICTA */}
+      {/* POP-UP 2: MODAL DE GESTIÓN DE ESTADO CON FECHA Y HORA EXACTAS */}
       {statusModalColab && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl border border-purple-100 my-8">
@@ -899,7 +896,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                     </span>
                     <div className="grid grid-cols-1 gap-1 pl-2">
                       {stg.statuses.map((st) => {
-                        const dateLogged = statusModalColab.statusHistory?.[st];
+                        const dateLoggedWithTime = statusModalColab.statusHistory?.[st];
                         const isSelected = statusModalColab.status === st;
 
                         return (
@@ -914,9 +911,9 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                             }`}
                           >
                             <span>{st}</span>
-                            {dateLogged && (
-                              <span className={`text-[10px] ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>
-                                📅 {dateLogged}
+                            {dateLoggedWithTime && (
+                              <span className={`text-[10px] ${isSelected ? 'text-white/80' : 'text-purple-600 font-medium'}`}>
+                                🕒 {dateLoggedWithTime}
                               </span>
                             )}
                           </button>
