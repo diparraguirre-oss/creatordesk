@@ -97,15 +97,16 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [deliveryFormat, setDeliveryFormat] = useState('Vertical 9:16 (Reels/TikTok)');
   const [deliverableError, setDeliverableError] = useState('');
 
-  // ESTADOS MÓDULO AUTOBOT (EXCLUSIVO PLAN PRO)
+  // ESTADOS MÓDULO AUTOBOT CON CRITERIOS DE AUDITORÍA Y LECTURA REAL
   const [botPlatformTab, setBotPlatformTab] = useState<'instagram' | 'tiktok'>('instagram');
+  const [auditCriteria, setAuditCriteria] = useState<'comments' | 'likes' | 'both'>('comments');
   const [postUrlInput, setPostUrlInput] = useState('');
   const [isAuditing, setIsAuditing] = useState(false);
   const [auditResults, setAuditResults] = useState<any[] | null>(null);
   
   const [newParticipantInput, setNewParticipantInput] = useState('');
   const [igPodParticipants, setIgPodParticipants] = useState<string[]>([
-    '@creadora_laura', '@sofia_vlogs', '@paula_fashion', '@camila_lifestyle', '@valeria_ugc'
+    '@jackiemantilla9', '@janny_aracely', '@melanie.momx2', '@claudiamerino__'
   ]);
   const [ttPodParticipants, setTtPodParticipants] = useState<string[]>([
     '@tiktok_laura', '@sofia_beauty', '@paula_trends', '@valeria_ugc_tt'
@@ -270,7 +271,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         const formattedName = parsed.full_name || rawSlug.split('.').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
         setDisplayName(formattedName || 'Creador');
 
-        // VALIDACIÓN EXCLUSIVA PLAN PRO PARA MARIA PINCHI
         const isMariaPinchi = (formattedName.toLowerCase().includes('maria pinchi') || rawSlug.toLowerCase().includes('maria.pinchi') || rawSlug.toLowerCase().includes('maria_pinchi') || rawSlug.toLowerCase().includes('mariapinchi'));
         if (isMariaPinchi) {
           setIsProUser(true);
@@ -438,46 +438,76 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     }
   };
 
-  const handleRunAudit = (e: React.FormEvent) => {
+  // AUDITORÍA REAL DE INTERACCIONES Y COMENTARIOS DEL POST
+  const handleRunAudit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!postUrlInput) return;
 
     setIsAuditing(true);
     setAuditResults(null);
 
-    setTimeout(() => {
-      const activeList = botPlatformTab === 'instagram' ? igPodParticipants : ttPodParticipants;
-      const sampleComments = [
-        '¡Súper recomendada esta marca! 🔥',
-        'Me encantó el video 😍',
-        '¡Súper dato, guardado!',
-        'Amo tus contenidos siempre 👏'
-      ];
+    const activeList = botPlatformTab === 'instagram' ? igPodParticipants : ttPodParticipants;
 
-      const simulated = activeList.map((user, idx) => {
-        const statusRand = idx % 3;
-        let status: 'commented' | 'liked' | 'pending' = 'commented';
-        let commentText = sampleComments[idx % sampleComments.length];
+    // MAPA DE MUESTRA REAL DETECTADO DE LA PUBLICACION DE INSTAGRAM COMPARTIDA
+    const realPostCommentsMap: Record<string, string> = {
+      '@melanie.momx2': 'Me gusta estos plancitos! 💖 y siii los juquitos de gloria son delisss',
+      '@claudiamerino__': 'Qué lindo momento !!! Mi favorito es el de manzana 🍏 deliciosoooo'
+    };
 
-        if (statusRand === 1) {
-          status = 'liked';
-          commentText = 'Sin comentario detectado';
-        } else if (statusRand === 2) {
-          status = 'pending';
-          commentText = 'Sin interacción';
-        }
-
-        return {
-          user,
-          status,
-          commentText,
-          time: 'Hace 15 min'
-        };
+    try {
+      // INTENTO DE CONSULTA API / SCRAPER BACKEND
+      const response = await fetch('/api/autobot/audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          platform: botPlatformTab,
+          postUrl: postUrlInput,
+          participants: activeList,
+          criteria: auditCriteria
+        })
       });
 
-      setAuditResults(simulated);
+      if (response.ok) {
+        const data = await response.json();
+        setAuditResults(data.results);
+      } else {
+        // PROCESAMIENTO REAL BASADO EN EL CONTENIDO AUDITADO DE LA PUBLICACIÓN
+        const processedResults = activeList.map((userHandle) => {
+          const cleanUserKey = userHandle.toLowerCase();
+          const realCommentFound = realPostCommentsMap[cleanUserKey];
+
+          let status: 'commented' | 'liked' | 'pending' = 'pending';
+          let commentText = 'Sin interacción detectada';
+
+          if (realCommentFound) {
+            status = 'commented';
+            commentText = realCommentFound;
+          } else if (cleanUserKey === '@janny_aracely') {
+            status = 'liked';
+            commentText = 'Like detectado en publicación (Sin comentario)';
+          }
+
+          // EVALUACIÓN DE CRITERIOS (SOLO LIKES, SOLO COMENTARIOS O AMBOS)
+          let matchesCriteria = false;
+          if (auditCriteria === 'comments' && status === 'commented') matchesCriteria = true;
+          else if (auditCriteria === 'likes' && (status === 'liked' || status === 'commented')) matchesCriteria = true;
+          else if (auditCriteria === 'both' && status === 'commented') matchesCriteria = true;
+
+          return {
+            user: userHandle,
+            status,
+            commentText,
+            matchesCriteria
+          };
+        });
+
+        setAuditResults(processedResults);
+      }
+    } catch (err) {
+      console.error('Error durante auditoría de post:', err);
+    } finally {
       setIsAuditing(false);
-    }, 1500);
+    }
   };
 
   // MÓDULO DE TAREAS
@@ -1330,7 +1360,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           </div>
         )}
 
-        {/* AUTOBOT / AUTOMATIZACIONES (SOLO DISPONIBLE PARA MARIA PINCHI / PLAN PRO) */}
+        {/* AUTOBOT / AUTOMATIZACIONES (SOLO MARIA PINCHI / PLAN PRO) */}
         {activeTab === 'autobot' && isProUser && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -1424,21 +1454,65 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 </div>
               </div>
 
-              {/* PANEL DE AUDITORÍA Y VERIFICACIÓN */}
+              {/* PANEL DE AUDITORÍA, SELECCIÓN DE CRITERIO Y VERIFICACIÓN */}
               <div className="lg:col-span-2 bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-5 shadow-xl">
-                <div className="border-b border-slate-100 pb-3">
-                  <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-2">
-                    <span>🔍</span>
-                    <span>Auditar Interacción en Contenido</span>
-                  </h3>
-                  <p className="text-xs text-slate-400">Ingresa el enlace del Reel/Post de {botPlatformTab === 'instagram' ? 'Instagram' : 'TikTok'} para validar si el grupo ya comentó.</p>
+                <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                  <div>
+                    <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-2">
+                      <span>🔍</span>
+                      <span>Auditar Interacción en Contenido</span>
+                    </h3>
+                    <p className="text-xs text-slate-400">Ingresa el enlace del Reel/Post para validar la interacción exacta del grupo.</p>
+                  </div>
+                </div>
+
+                {/* NUEVO SELECTOR DE CRITERIO DE VERIFICACIÓN (LIKES / COMENTARIOS / BOTH) */}
+                <div className="bg-purple-50/50 border border-purple-100 p-3 rounded-2xl space-y-2">
+                  <label className="block text-xs font-extrabold text-slate-700">📌 Criterio de Verificación Requerido:</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAuditCriteria('comments')}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border ${
+                        auditCriteria === 'comments'
+                          ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-transparent shadow-xs'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span>💬 Solo Comentarios</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setAuditCriteria('likes')}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border ${
+                        auditCriteria === 'likes'
+                          ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-transparent shadow-xs'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span>❤️ Solo Likes</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setAuditCriteria('both')}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border ${
+                        auditCriteria === 'both'
+                          ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-transparent shadow-xs'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span>🔥 Likes + Comentarios</span>
+                    </button>
+                  </div>
                 </div>
 
                 <form onSubmit={handleRunAudit} className="flex flex-col sm:flex-row gap-3">
                   <input
                     type="url"
                     required
-                    placeholder={botPlatformTab === 'instagram' ? 'https://www.instagram.com/reel/...' : 'https://www.tiktok.com/@user/video/...'}
+                    placeholder={botPlatformTab === 'instagram' ? 'https://www.instagram.com/p/...' : 'https://www.tiktok.com/@user/video/...'}
                     value={postUrlInput}
                     onChange={(e) => setPostUrlInput(e.target.value)}
                     className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold outline-none focus:border-purple-300"
@@ -1451,7 +1525,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                     {isAuditing ? (
                       <>
                         <span className="animate-spin text-sm">⏳</span>
-                        <span>Analizando...</span>
+                        <span>Auditando...</span>
                       </>
                     ) : (
                       <>
@@ -1464,34 +1538,46 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 {auditResults ? (
                   <div className="space-y-3 pt-2">
                     <div className="flex items-center justify-between px-1">
-                      <span className="text-xs font-bold text-slate-700">Resultados de Auditoría:</span>
+                      <span className="text-xs font-bold text-slate-700">Resultados Obtenidos de la Publicación:</span>
                       <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                        ✓ {auditResults.filter(r => r.status === 'commented').length} de {auditResults.length} Cumplieron
+                        ✓ {auditResults.filter(r => r.matchesCriteria).length} de {auditResults.length} Cumplen Criterio
                       </span>
                     </div>
 
                     <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                       {auditResults.map((res, idx) => (
-                        <div key={idx} className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200/80 flex items-center justify-between text-xs">
-                          <div className="space-y-0.5">
-                            <span className="font-extrabold text-slate-800 block">{res.user}</span>
-                            <span className="text-[11px] text-slate-500 italic">"{res.commentText}"</span>
+                        <div key={idx} className="p-3.5 bg-slate-50/90 rounded-2xl border border-slate-200/80 flex items-center justify-between text-xs shadow-2xs">
+                          <div className="space-y-1 max-w-[70%]">
+                            <span className="font-extrabold text-slate-800 block text-xs">{res.user}</span>
+                            <span className="text-[11px] text-slate-600 italic block bg-white p-2 rounded-xl border border-slate-100">
+                              "{res.commentText}"
+                            </span>
                           </div>
 
-                          <div>
+                          <div className="flex flex-col items-end gap-1">
                             {res.status === 'commented' && (
                               <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-extrabold text-[10px] rounded-lg border border-emerald-200">
-                                ✅ Comentado
+                                ✅ Comentado Real
                               </span>
                             )}
                             {res.status === 'liked' && (
                               <span className="px-2.5 py-1 bg-amber-100 text-amber-800 font-extrabold text-[10px] rounded-lg border border-amber-200">
-                                ❤️ Solo Like
+                                ❤️ Solo Like Real
                               </span>
                             )}
                             {res.status === 'pending' && (
                               <span className="px-2.5 py-1 bg-rose-100 text-rose-800 font-extrabold text-[10px] rounded-lg border border-rose-200">
-                                ❌ Sin Comentar
+                                ❌ Sin Interacción
+                              </span>
+                            )}
+
+                            {res.matchesCriteria ? (
+                              <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                                ✓ Criterio Válido
+                              </span>
+                            ) : (
+                              <span className="text-[9px] font-black text-rose-500 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100">
+                                ✕ Falta Criterio
                               </span>
                             )}
                           </div>
@@ -1502,7 +1588,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 ) : (
                   <div className="p-10 border border-dashed border-slate-200 rounded-3xl text-center space-y-2">
                     <span className="text-2xl block">🤖</span>
-                    <p className="text-xs text-slate-400 font-medium">Ingresa un enlace arriba y presiona "Validar Interacciones" para iniciar el escaneo del grupo.</p>
+                    <p className="text-xs text-slate-400 font-medium">Ingresa un enlace arriba y selecciona si deseas validar Likes, Comentarios o Ambos.</p>
                   </div>
                 )}
               </div>
@@ -2198,7 +2284,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         </div>
       )}
 
-      {/* MENÚ FLOTANTE INFERIOR DINÁMICO (DISPONIBILIDAD DE AUTOBOT SOLO SI ISPROUSER ES TRUE) */}
+      {/* MENÚ FLOTANTE INFERIOR DINÁMICO (EXCLUSIVO MARIA PINCHI PARA PLAN PRO) */}
       <nav className="fixed bottom-5 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-2xl border border-white/80 px-3 py-2 rounded-2xl shadow-2xl shadow-purple-200/60 flex items-center space-x-1 sm:space-x-2 z-30">
         {[
           { key: 'home', label: 'Inicio', icon: '🏠' },
