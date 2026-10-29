@@ -35,6 +35,12 @@ const EventIcon = () => (
   </svg>
 );
 
+const TrashIcon = () => (
+  <svg className="w-4 h-4 text-rose-500 hover:text-rose-700 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  </svg>
+);
+
 export const CAMPAIGN_STAGES = [
   {
     stage: 'Negociación',
@@ -78,17 +84,23 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [currency, setCurrency] = useState<'USD' | 'PEN'>('USD');
   const [amount, setAmount] = useState('');
   const [paymentDays, setPaymentDays] = useState('30');
-  const [deliverables, setDeliverables] = useState({ reels: 1, tiktoks: 0, stories: 2, facebook: 0, youtube: 0, evento: 0 });
+  const [deliverables, setDeliverables] = useState({ reels: 0, tiktoks: 0, stories: 0, facebook: 0, youtube: 0, evento: 0 });
 
-  // Campos específicos de UGC
+  // Campos UGC ampliados
   const [isUgc, setIsUgc] = useState(false);
   const [usageRightsDays, setUsageRightsDays] = useState('30 días');
   const [includesRawFootage, setIncludesRawFootage] = useState(false);
   const [allowAdsUsage, setAllowAdsUsage] = useState(true);
+  const [categoryExclusivity, setCategoryExclusivity] = useState('Sin Exclusividad');
+  const [deliveryFormat, setDeliveryFormat] = useState('Vertical 9:16 (Móvil)');
 
-  // Modal confirmación tareas
+  // Error de entregables vacíos
+  const [deliverableError, setDeliverableError] = useState('');
+
+  // Modal confirmación tareas y borrado
   const [pendingTask, setPendingTask] = useState<any>(null);
   const [showTaskConfirmModal, setShowTaskConfirmModal] = useState(false);
+  const [colabToDelete, setColabToDelete] = useState<any>(null);
 
   const [tasks, setTasks] = useState([
     { id: 't1', title: 'Enviar guión para aprobación a Adidas', brand: 'Adidas', status: 'pendiente', category: 'Grabar' },
@@ -127,7 +139,13 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       paymentDays: 0,
       status: 'En Grabación',
       isUgc: true,
-      ugcDetails: { usageRightsDays: '60 días', includesRawFootage: true, allowAdsUsage: true },
+      ugcDetails: {
+        usageRightsDays: '60 días',
+        includesRawFootage: true,
+        allowAdsUsage: true,
+        categoryExclusivity: '30 días en Cosméticos',
+        deliveryFormat: 'Vertical 9:16 (Móvil)'
+      },
       deliverables: [
         { type: 'tiktok', label: '1 TikTok UGC' },
         { type: 'facebook', label: '1 Post' }
@@ -139,21 +157,26 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     },
     {
       id: '3',
-      brand: 'Cúspide Relojes',
-      contactName: 'Fernando Torres',
+      brand: 'Iphone',
+      contactName: 'Juan',
       dealType: 'Pago',
       currency: 'PEN',
-      amount: 2200,
-      paymentDays: 15,
-      status: 'Factura Cobrada',
-      isUgc: false,
+      amount: 500,
+      paymentDays: 30,
+      status: 'Campaña Recibida',
+      isUgc: true,
+      ugcDetails: {
+        usageRightsDays: '30 días',
+        includesRawFootage: false,
+        allowAdsUsage: true,
+        categoryExclusivity: 'Sin Exclusividad',
+        deliveryFormat: 'Vertical 9:16 (Móvil)'
+      },
       deliverables: [
-        { type: 'instagram', label: '1 Reel' },
-        { type: 'youtube', label: '1 Video' }
+        { type: 'instagram', label: 'Contenido personalizado' }
       ],
       statusHistory: {
-        'Campaña Recibida': '10/10/2026',
-        'Factura Cobrada': '28/10/2026'
+        'Campaña Recibida': '28/10/2026'
       }
     }
   ]);
@@ -206,8 +229,24 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     setPendingTask(null);
   };
 
+  const handleDeleteColab = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setColabs(colabs.filter(c => c.id !== id));
+    setColabToDelete(null);
+  };
+
+  const totalDeliverablesCount = deliverables.reels + deliverables.tiktoks + deliverables.stories + deliverables.facebook + deliverables.youtube + deliverables.evento;
+
   const handleCreateColab = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validación estricta: Mínimo 1 entregable
+    if (totalDeliverablesCount === 0) {
+      setDeliverableError('Debe seleccionar al menos 1 contenido a entregar.');
+      return;
+    }
+    setDeliverableError('');
+
     if (!brandName) return;
 
     const delivArray = [];
@@ -216,7 +255,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     if (deliverables.tiktoks > 0) delivArray.push({ type: 'tiktok', label: `${deliverables.tiktoks} TikToks` });
     if (deliverables.facebook > 0) delivArray.push({ type: 'facebook', label: `${deliverables.facebook} Facebook` });
     if (deliverables.youtube > 0) delivArray.push({ type: 'youtube', label: `${deliverables.youtube} YouTube` });
-    if (deliverables.evento > 0) delivArray.push({ type: 'evento', label: `${deliverables.evento} Evento` });
+    if (deliverables.evento > 0) delivArray.push({ type: 'evento', label: `${deliverables.evento} Eventos` });
 
     const todayStr = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
@@ -230,8 +269,8 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       paymentDays: Number(paymentDays),
       status: 'Campaña Recibida',
       isUgc: isUgc,
-      ugcDetails: isUgc ? { usageRightsDays, includesRawFootage, allowAdsUsage } : null,
-      deliverables: delivArray.length > 0 ? delivArray : [{ type: 'instagram', label: 'Contenido personalizado' }],
+      ugcDetails: isUgc ? { usageRightsDays, includesRawFootage, allowAdsUsage, categoryExclusivity, deliveryFormat } : null,
+      deliverables: delivArray,
       statusHistory: {
         'Campaña Recibida': todayStr
       }
@@ -243,6 +282,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     setContactName('');
     setAmount('');
     setIsUgc(false);
+    setDeliverables({ reels: 0, tiktoks: 0, stories: 0, facebook: 0, youtube: 0, evento: 0 });
   };
 
   const getStageIndex = (status: string) => {
@@ -436,7 +476,10 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 <p className="text-xs text-slate-500">Supervisa el flujo de tus campañas y redes sociales en tiempo real.</p>
               </div>
               <button
-                onClick={() => setShowNewColabModal(true)}
+                onClick={() => {
+                  setDeliverableError('');
+                  setShowNewColabModal(true);
+                }}
                 className="px-4 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-200 transition"
               >
                 + Nueva Colaboración
@@ -466,16 +509,18 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               ))}
             </div>
 
-            {/* Tarjetas de Colaboración */}
+            {/* Tarjetas de Colaboración (Clic para abrir detalle) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               {filteredColabs.map((c) => {
                 const currentStageIdx = getStageIndex(c.status);
                 const lastDate = c.statusHistory?.[c.status] || 'Hoy';
+                const isNegociacion = currentStageIdx === 0;
 
                 return (
                   <div
                     key={c.id}
-                    className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl shadow-purple-100/30 hover:border-purple-200 transition"
+                    onClick={() => setSelectedColabForDetail(c)}
+                    className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl shadow-purple-100/30 hover:border-purple-300 transition cursor-pointer relative group"
                   >
                     <div className="flex items-start justify-between border-b border-slate-100 pb-3">
                       <div className="space-y-1">
@@ -507,9 +552,27 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                         ) : (
                           <div className="text-xs font-bold text-pink-500">Canje Directo</div>
                         )}
-                        <span className="inline-block px-2.5 py-1 bg-purple-100/80 border border-purple-200 text-purple-700 rounded-xl text-[11px] font-bold">
-                          {c.status}
-                        </span>
+                        
+                        <div className="flex items-center justify-end space-x-2">
+                          <span className="inline-block px-2.5 py-1 bg-purple-100/80 border border-purple-200 text-purple-700 rounded-xl text-[11px] font-bold">
+                            {c.status}
+                          </span>
+
+                          {/* Tachito de Borrar SOLO visible en estado Negociación */}
+                          {isNegociacion && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setColabToDelete(c);
+                              }}
+                              className="p-1 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition"
+                              title="Borrar colaboración (Solo en Negociación)"
+                            >
+                              <TrashIcon />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -565,12 +628,9 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                       <span className="text-[11px] text-slate-400">
                         {c.paymentDays > 0 ? `Plazo: ${c.paymentDays} Días` : 'Entrega sin factura'}
                       </span>
-                      <button
-                        onClick={() => setSelectedColabForDetail(c)}
-                        className="px-3.5 py-1.5 bg-slate-100 hover:bg-purple-100 text-purple-700 font-bold text-xs rounded-xl transition flex items-center gap-1.5"
-                      >
-                        ⚙️ Gestionar Estado
-                      </button>
+                      <span className="px-3 py-1 bg-slate-100 text-purple-700 font-bold text-xs rounded-xl flex items-center gap-1.5 group-hover:bg-purple-100 transition">
+                        🔍 Ver Detalle Completo
+                      </span>
                     </div>
                   </div>
                 );
@@ -627,14 +687,28 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
       </main>
 
-      {/* Modal / Drawer para Gestión Detallada */}
+      {/* Modal / Drawer para Detalle Completo de la Colaboración */}
       {selectedColabForDetail && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-5 shadow-2xl border border-purple-100">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white p-6 rounded-3xl max-w-lg w-full space-y-5 shadow-2xl border border-purple-100 my-8">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h2 className="text-base font-bold text-slate-800">{selectedColabForDetail.brand}</h2>
-                <p className="text-xs text-slate-400">Contacto: {selectedColabForDetail.contactName}</p>
+                <div className="flex items-center space-x-2">
+                  <h2 className="text-lg font-black text-slate-800">{selectedColabForDetail.brand}</h2>
+                  <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-extrabold border ${
+                    selectedColabForDetail.dealType === 'Canje'
+                      ? 'bg-pink-50 border-pink-200 text-pink-600'
+                      : 'bg-purple-50 border-purple-200 text-purple-600'
+                  }`}>
+                    {selectedColabForDetail.dealType}
+                  </span>
+                  {selectedColabForDetail.isUgc && (
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-indigo-100 border border-indigo-200 text-indigo-700">
+                      ⚡ UGC
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500">👤 Contacto: {selectedColabForDetail.contactName}</p>
               </div>
               <button
                 onClick={() => setSelectedColabForDetail(null)}
@@ -644,9 +718,57 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               </button>
             </div>
 
-            <div className="space-y-3">
-              <label className="block text-xs font-bold text-slate-600">Seleccionar Estado Actual (Con fecha de registro):</label>
-              <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+            {/* Detalles de la Campaña */}
+            <div className="grid grid-cols-2 gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-xs">
+              <div>
+                <span className="text-slate-400 font-semibold block text-[10px]">Monto del Acuerdo</span>
+                <span className="font-bold text-emerald-600 text-sm">
+                  {selectedColabForDetail.dealType === 'Pago' 
+                    ? `${selectedColabForDetail.currency === 'USD' ? '$' : 'S/'} ${selectedColabForDetail.amount}` 
+                    : 'Canje Directo'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 font-semibold block text-[10px]">Plazo de Pago</span>
+                <span className="font-bold text-slate-700">
+                  {selectedColabForDetail.paymentDays > 0 ? `${selectedColabForDetail.paymentDays} Días` : 'Inmediato / Sin Factura'}
+                </span>
+              </div>
+            </div>
+
+            {/* Entregables */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-700">Entregables Acordados:</label>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedColabForDetail.deliverables?.map((d: any, idx: number) => (
+                  <span key={idx} className="px-3 py-1 bg-purple-50 border border-purple-200 text-purple-700 font-bold text-xs rounded-xl flex items-center gap-1.5">
+                    {renderSocialIcon(d.type)}
+                    <span>{d.label}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Detalle UGC Si Aplica */}
+            {selectedColabForDetail.isUgc && selectedColabForDetail.ugcDetails && (
+              <div className="p-3.5 bg-indigo-50/60 border border-indigo-100 rounded-2xl space-y-2 text-xs">
+                <span className="font-bold text-indigo-900 block flex items-center gap-1 text-[11px]">
+                  ⚡ Términos de Licencia UGC:
+                </span>
+                <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-700">
+                  <div>• Licencia: <strong>{selectedColabForDetail.ugcDetails.usageRightsDays}</strong></div>
+                  <div>• Formato: <strong>{selectedColabForDetail.ugcDetails.deliveryFormat}</strong></div>
+                  <div>• Raw Footage: <strong>{selectedColabForDetail.ugcDetails.includesRawFootage ? 'Sí Incluye' : 'No Incluye'}</strong></div>
+                  <div>• Pauta/Ads: <strong>{selectedColabForDetail.ugcDetails.allowAdsUsage ? 'Permitido' : 'No Permitido'}</strong></div>
+                  <div className="col-span-2">• Exclusividad: <strong>{selectedColabForDetail.ugcDetails.categoryExclusivity}</strong></div>
+                </div>
+              </div>
+            )}
+
+            {/* Selector de Cambiar Estado con Fechas */}
+            <div className="space-y-2.5">
+              <label className="block text-xs font-bold text-slate-700">Cambiar Estado Actual:</label>
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                 {CAMPAIGN_STAGES.map((stg) => (
                   <div key={stg.stage} className="space-y-1">
                     <span className="text-[11px] font-bold text-purple-600 flex items-center gap-1">
@@ -688,13 +810,13 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               onClick={() => setSelectedColabForDetail(null)}
               className="w-full py-2.5 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200 transition"
             >
-              Cerrar y Guardar
+              Cerrar Detalle
             </button>
           </div>
         </div>
       )}
 
-      {/* Modal Nueva Colaboración (z-50) */}
+      {/* Modal Nueva Colaboración */}
       {showNewColabModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl border border-purple-100 my-8">
@@ -705,7 +827,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
             <form onSubmit={handleCreateColab} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Nombre de la Marca</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Nombre de la Marca *</label>
                 <input
                   type="text"
                   required
@@ -799,9 +921,19 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 </div>
               )}
 
-              {/* Selección de Entregables */}
+              {/* Selección de Entregables OBLIGATORIA */}
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Contenidos a Entregar (Selección)</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-semibold text-slate-600">Contenidos a Entregar (Mínimo 1) *</label>
+                  <span className="text-[10px] font-bold text-purple-600">Seleccionados: {totalDeliverablesCount}</span>
+                </div>
+
+                {deliverableError && (
+                  <p className="text-[11px] font-bold text-rose-500 bg-rose-50 p-2 rounded-lg border border-rose-200 mb-2">
+                    ⚠️ {deliverableError}
+                  </p>
+                )}
+
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
                     <span className="font-medium flex items-center gap-1.5">
@@ -810,7 +942,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                     <div className="flex items-center space-x-1">
                       <button type="button" onClick={() => setDeliverables({ ...deliverables, reels: Math.max(0, deliverables.reels - 1) })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">-</button>
                       <span className="font-bold px-1">{deliverables.reels}</span>
-                      <button type="button" onClick={() => setDeliverables({ ...deliverables, reels: deliverables.reels + 1 })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">+</button>
+                      <button type="button" onClick={() => { setDeliverables({ ...deliverables, reels: deliverables.reels + 1 }); setDeliverableError(''); }} className="px-2 py-0.5 bg-slate-200 rounded font-bold">+</button>
                     </div>
                   </div>
 
@@ -821,7 +953,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                     <div className="flex items-center space-x-1">
                       <button type="button" onClick={() => setDeliverables({ ...deliverables, stories: Math.max(0, deliverables.stories - 1) })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">-</button>
                       <span className="font-bold px-1">{deliverables.stories}</span>
-                      <button type="button" onClick={() => setDeliverables({ ...deliverables, stories: deliverables.stories + 1 })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">+</button>
+                      <button type="button" onClick={() => { setDeliverables({ ...deliverables, stories: deliverables.stories + 1 }); setDeliverableError(''); }} className="px-2 py-0.5 bg-slate-200 rounded font-bold">+</button>
                     </div>
                   </div>
 
@@ -832,7 +964,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                     <div className="flex items-center space-x-1">
                       <button type="button" onClick={() => setDeliverables({ ...deliverables, tiktoks: Math.max(0, deliverables.tiktoks - 1) })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">-</button>
                       <span className="font-bold px-1">{deliverables.tiktoks}</span>
-                      <button type="button" onClick={() => setDeliverables({ ...deliverables, tiktoks: deliverables.tiktoks + 1 })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">+</button>
+                      <button type="button" onClick={() => { setDeliverables({ ...deliverables, tiktoks: deliverables.tiktoks + 1 }); setDeliverableError(''); }} className="px-2 py-0.5 bg-slate-200 rounded font-bold">+</button>
                     </div>
                   </div>
 
@@ -843,7 +975,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                     <div className="flex items-center space-x-1">
                       <button type="button" onClick={() => setDeliverables({ ...deliverables, facebook: Math.max(0, deliverables.facebook - 1) })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">-</button>
                       <span className="font-bold px-1">{deliverables.facebook}</span>
-                      <button type="button" onClick={() => setDeliverables({ ...deliverables, facebook: deliverables.facebook + 1 })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">+</button>
+                      <button type="button" onClick={() => { setDeliverables({ ...deliverables, facebook: deliverables.facebook + 1 }); setDeliverableError(''); }} className="px-2 py-0.5 bg-slate-200 rounded font-bold">+</button>
                     </div>
                   </div>
 
@@ -854,7 +986,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                     <div className="flex items-center space-x-1">
                       <button type="button" onClick={() => setDeliverables({ ...deliverables, youtube: Math.max(0, deliverables.youtube - 1) })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">-</button>
                       <span className="font-bold px-1">{deliverables.youtube}</span>
-                      <button type="button" onClick={() => setDeliverables({ ...deliverables, youtube: deliverables.youtube + 1 })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">+</button>
+                      <button type="button" onClick={() => { setDeliverables({ ...deliverables, youtube: deliverables.youtube + 1 }); setDeliverableError(''); }} className="px-2 py-0.5 bg-slate-200 rounded font-bold">+</button>
                     </div>
                   </div>
 
@@ -865,13 +997,13 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                     <div className="flex items-center space-x-1">
                       <button type="button" onClick={() => setDeliverables({ ...deliverables, evento: Math.max(0, deliverables.evento - 1) })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">-</button>
                       <span className="font-bold px-1">{deliverables.evento}</span>
-                      <button type="button" onClick={() => setDeliverables({ ...deliverables, evento: deliverables.evento + 1 })} className="px-2 py-0.5 bg-slate-200 rounded font-bold">+</button>
+                      <button type="button" onClick={() => { setDeliverables({ ...deliverables, evento: deliverables.evento + 1 }); setDeliverableError(''); }} className="px-2 py-0.5 bg-slate-200 rounded font-bold">+</button>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* SWITCH Y OPCIONES UGC */}
+              {/* SWITCH Y OPCIONES UGC AMPLIADAS */}
               <div className="p-3 bg-purple-50/60 rounded-2xl border border-purple-100 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
@@ -896,7 +1028,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 </div>
 
                 {isUgc && (
-                  <div className="pt-2 border-t border-purple-100 space-y-3 text-xs">
+                  <div className="pt-2 border-t border-purple-100 space-y-2.5 text-xs">
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                         Derechos de Uso Comercial (Licencia):
@@ -915,6 +1047,35 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">Formato de Entrega:</label>
+                        <select
+                          value={deliveryFormat}
+                          onChange={(e) => setDeliveryFormat(e.target.value)}
+                          className="w-full px-3 py-1.5 bg-white border border-purple-200 rounded-xl text-xs text-slate-800 focus:outline-none"
+                        >
+                          <option value="Vertical 9:16 (Móvil)">Vertical 9:16 (Reels/TikTok)</option>
+                          <option value="Horizontal 16:9 (Desktop)">Horizontal 16:9 (YouTube)</option>
+                          <option value="Ambos Formatos">Ambos Formatos (9:16 y 16:9)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">Exclusividad de Creador:</label>
+                        <select
+                          value={categoryExclusivity}
+                          onChange={(e) => setCategoryExclusivity(e.target.value)}
+                          className="w-full px-3 py-1.5 bg-white border border-purple-200 rounded-xl text-xs text-slate-800 focus:outline-none"
+                        >
+                          <option value="Sin Exclusividad">Sin Exclusividad</option>
+                          <option value="15 Días">15 Días en la Categoría</option>
+                          <option value="30 Días">30 Días en la Categoría</option>
+                          <option value="60 Días">60 Días en la Categoría</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-1">
                       <label className="flex items-center space-x-2 p-2 bg-white border border-purple-200 rounded-xl cursor-pointer">
                         <input
                           type="checkbox"
@@ -922,7 +1083,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                           onChange={(e) => setIncludesRawFootage(e.target.checked)}
                           className="rounded text-purple-600 focus:ring-purple-400"
                         />
-                        <span className="text-[10px] font-semibold text-slate-700">Incluye Raw Footage (Clips sin editar)</span>
+                        <span className="text-[10px] font-semibold text-slate-700">Incluye Raw Footage (Clips sueltos)</span>
                       </label>
 
                       <label className="flex items-center space-x-2 p-2 bg-white border border-purple-200 rounded-xl cursor-pointer">
@@ -932,7 +1093,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                           onChange={(e) => setAllowAdsUsage(e.target.checked)}
                           className="rounded text-purple-600 focus:ring-purple-400"
                         />
-                        <span className="text-[10px] font-semibold text-slate-700">Uso para Pauta / Anuncios (Ads)</span>
+                        <span className="text-[10px] font-semibold text-slate-700">Uso para Pauta / Ads (Whitelisting)</span>
                       </label>
                     </div>
                   </div>
@@ -955,6 +1116,37 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Pop-up de Confirmación de Borrado de Campaña */}
+      {colabToDelete && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-3xl max-w-sm w-full text-center space-y-4 shadow-2xl border border-rose-100">
+            <div className="w-14 h-14 bg-rose-100 text-rose-600 rounded-2xl mx-auto flex items-center justify-center text-2xl">
+              🗑️
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-base font-bold text-slate-800">¿Eliminar Colaboración?</h2>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                ¿Estás seguro de eliminar la campaña con <strong className="text-slate-700">"{colabToDelete.brand}"</strong>? Esta acción no se puede deshacer.
+              </p>
+            </div>
+            <div className="flex items-center justify-center space-x-2 pt-1">
+              <button
+                onClick={() => setColabToDelete(null)}
+                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-xl transition"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={(e) => handleDeleteColab(colabToDelete.id, e)}
+                className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition shadow-md shadow-rose-200"
+              >
+                Eliminar
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -990,7 +1182,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         </div>
       )}
 
-      {/* Menú Flotante Inferior (Ajustado a z-30 para quedar debajo del fondo opaco del modal) */}
+      {/* Menú Flotante Inferior */}
       <nav className="fixed bottom-5 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-2xl border border-white/80 px-3 py-2 rounded-2xl shadow-2xl shadow-purple-200/60 flex items-center space-x-1 sm:space-x-2 z-30">
         <button
           onClick={() => setActiveTab('home')}
