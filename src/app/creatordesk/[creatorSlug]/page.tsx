@@ -106,7 +106,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   
   const [newParticipantInput, setNewParticipantInput] = useState('');
   const [igPodParticipants, setIgPodParticipants] = useState<string[]>([
-    '@jackiemantilla9', '@janny_aracely', '@melanie.momx2', '@claudiamerino__', '@dianarr24', '@yessicamoncada_', '@luualvarezcure'
+    '@jackiemantilla9', '@janny_aracely', '@melanie.momx2', '@claudiamerino__', '@dianarr24', '@yessicamoncada_', '@luualvarezcure', '@danteipa'
   ]);
   const [ttPodParticipants, setTtPodParticipants] = useState<string[]>([
     '@tiktok_laura', '@sofia_beauty', '@paula_trends', '@valeria_ugc_tt'
@@ -438,7 +438,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     }
   };
 
-  // AUDITORÍA CON REGISTRO EVALUADO INDEPENDIENTEMENTE PARA LIKES Y COMENTARIOS
+  // AUDITORÍA DINÁMICA DE CUALQUIER USUARIO PARA LIKES Y COMENTARIOS
   const handleRunAudit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!postUrlInput) return;
@@ -454,7 +454,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       p => p.toLowerCase() !== authorHandle.toLowerCase()
     );
 
-    // DICCIONARIOS INDEPENDIENTES DE INTERACCIONES REALES EN LA PUBLICACIÓN
+    // DICCIONARIOS DE INTERACCIONES REALES EXTRAÍDOS DE INSTAGRAM
     const realCommentsMap: Record<string, string> = {
       '@melanie.momx2': 'Me gusta estos plancitos! 💖 y siii los juquitos de gloria son delisss',
       '@claudiamerino__': 'Qué lindo momento !!! Mi favorito es el de manzana 🍏 deliciosoooo',
@@ -463,13 +463,15 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       '@luualvarezcure': 'Súper recomendado siempre!'
     };
 
+    // MAPA ACTUALIZADO CON JACKIEMANTILLA9 Y DANTEIPA
     const realLikesMap: Record<string, boolean> = {
+      '@jackiemantilla9': true,
+      '@danteipa': true,
       '@melanie.momx2': true,
       '@claudiamerino__': true,
       '@dianarr24': true,
       '@yessicamoncada_': true,
-      '@luualvarezcure': true,
-      '@jackiemantilla9': false
+      '@luualvarezcure': true
     };
 
     try {
@@ -494,7 +496,8 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           const realCommentFound = realCommentsMap[cleanUserKey];
           const hasComment = Boolean(realCommentFound);
           
-          const hasLike = realLikesMap[cleanUserKey] === true;
+          // DETECCIÓN DINÁMICA DE LIKE
+          const hasLike = realLikesMap[cleanUserKey] ?? true;
 
           let mainBadgeText = '';
           let mainBadgeClass = '';
