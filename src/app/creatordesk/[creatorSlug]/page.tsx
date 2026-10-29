@@ -126,15 +126,14 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [showTaskConfirmModal, setShowTaskConfirmModal] = useState(false);
   const [colabToDelete, setColabToDelete] = useState<any>(null);
 
-  // ESTADOS DE LA AGENDA Y GOOGLE CALENDAR OAUTH
-  const [selectedDay, setSelectedDay] = useState<number>(28);
+  // ESTADOS DE LA AGENDA Y GOOGLE CALENDAR
+  const [selectedDay, setSelectedDay] = useState<number>(31);
   const [calendarFilter, setCalendarFilter] = useState<'todos' | 'grabacion' | 'entrega' | 'reunion' | 'pago' | 'google'>('todos');
   const [showCreateDropdown, setShowCreateDropdown] = useState(false);
   const [createType, setCreateType] = useState<'evento' | 'tarea' | 'citas' | null>(null);
 
-  // Estado Real de Google Auth
   const [isGoogleConnected, setIsGoogleConnected] = useState(false);
-  const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(null);
+  const [showGoogleSetupModal, setShowGoogleSetupModal] = useState(false);
 
   // Eventos de la Agenda
   const [calendarEvents, setCalendarEvents] = useState<any[]>([
@@ -143,31 +142,86 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     { id: 'e3', title: 'Fecha Estimada de Cobro Factura', brand: 'Adidas', date: '2026-11-05', time: '09:00 hs', category: 'pago', source: 'creator' }
   ]);
 
-  // Redirección a Inicio de Sesión de Google (OAuth 2.0)
+  // CARGAR EVENTOS DESDE GOOGLE CALENDAR API SI EXISTE TOKEN
+  const fetchGoogleCalendarEvents = async (token: string) => {
+    try {
+      const response = await fetch(
+        'https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&timeMin=2026-10-01T00:00:00Z&timeMax=2026-11-30T23:59:59Z',
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem('google_access_token');
+          setIsGoogleConnected(false);
+        }
+        return;
+      }
+
+      const data = await response.json();
+      if (data.items) {
+        const fetchedEvents = data.items.map((item: any) => {
+          const startDateTime = item.start?.dateTime || item.start?.date || '';
+          const dateStr = startDateTime.substring(0, 10);
+          const timeStr = startDateTime.includes('T')
+            ? startDateTime.substring(11, 16) + ' hs'
+            : 'Todo el día';
+
+          return {
+            id: `g_${item.id}`,
+            title: item.summary || 'Evento de Google',
+            brand: 'Google Calendar',
+            date: dateStr,
+            time: timeStr,
+            category: 'google',
+            source: 'google'
+          };
+        });
+
+        setIsGoogleConnected(true);
+        setCalendarEvents(prev => [
+          ...prev.filter(e => e.source !== 'google'),
+          ...fetchedEvents
+        ]);
+      }
+    } catch (err) {
+      console.error('Error fetching Google Calendar events:', err);
+    }
+  };
+
+  useEffect(() => {
+    const googleToken = localStorage.getItem('google_access_token');
+    if (googleToken) {
+      setIsGoogleConnected(true);
+      fetchGoogleCalendarEvents(googleToken);
+    }
+  }, []);
+
+  // Manejador del botón Conectar Google
   const handleGoogleAuthConnect = () => {
     if (isGoogleConnected) {
-      // Desconectar
+      localStorage.removeItem('google_access_token');
       setIsGoogleConnected(false);
-      setGoogleAccessToken(null);
       setCalendarEvents(calendarEvents.filter(e => e.source !== 'google'));
       return;
     }
 
-    // ID de Cliente de Google Cloud Console
-    const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 'TU_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '780704611551-jiq915ec0qnp95c9t30ptkakblu209l1.apps.googleusercontent.com';
+
     const redirectUri = typeof window !== 'undefined' ? `${window.location.origin}/api/auth/google/callback` : '';
-    const scope = encodeURIComponent('https://www.googleapis.com/auth/calendar.events.readonly https://www.googleapis.com/auth/calendar.events');
+    const scope = encodeURIComponent('https://www.googleapis.com/auth/calendar.events.readonly https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar');
 
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}&prompt=consent`;
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}&prompt=consent`;
 
-    // Redirigir a la pantalla oficial de inicio de sesión de Google
     window.location.href = authUrl;
   };
 
   // Formulario de creación
   const [createTitle, setCreateTitle] = useState('');
   const [createBrand, setCreateBrand] = useState('');
-  const [createDate, setCreateDate] = useState('2026-10-28');
+  const [createDate, setCreateDate] = useState('2026-10-31');
   const [createTime, setCreateTime] = useState('10:00');
   const [createCategory, setCreateCategory] = useState<'grabacion' | 'entrega' | 'reunion' | 'pago'>('grabacion');
 
@@ -835,7 +889,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           </div>
         )}
 
-        {/* PESTAÑA AGENDA CON GOOGLE CALENDAR REAL */}
+        {/* PESTAÑA AGENDA CON GOOGLE CALENDAR */}
         {activeTab === 'calendar' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -845,18 +899,17 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               </div>
 
               <div className="flex items-center space-x-3 relative">
-                {/* Botón de Autenticación de Google Real */}
                 <button
                   onClick={handleGoogleAuthConnect}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border shadow-sm ${
                     isGoogleConnected
-                      ? 'bg-sky-50 border-sky-200 text-sky-700 hover:bg-sky-100'
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100'
                       : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                   }`}
                   title={isGoogleConnected ? "Google Calendar Conectado (Clic para desconectar)" : "Iniciar sesión con Google para sincronizar tu agenda"}
                 >
                   <GoogleIcon />
-                  <span>{isGoogleConnected ? 'Sincronizado' : 'Conectar Google'}</span>
+                  <span>{isGoogleConnected ? '✓ Google Conectado' : 'Conectar Google'}</span>
                 </button>
 
                 {/* BOTÓN ESTILO GOOGLE + CREAR */}
@@ -910,7 +963,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               </div>
             </div>
 
-            {/* Filtros de Tipo de Evento */}
+            {/* Filtros */}
             <div className="flex items-center space-x-2 bg-white/80 p-1.5 rounded-2xl border border-white/60 shadow-sm overflow-x-auto">
               {[
                 { key: 'todos', label: 'Todos los Eventos' },
@@ -935,12 +988,12 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Grid del Mes Octubre 2026 */}
+              {/* Grid Octubre 2026 */}
               <div className="lg:col-span-2 bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl shadow-purple-100/30">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <h3 className="font-extrabold text-slate-800 text-base">October 2026</h3>
                   <div className="text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-xl border border-purple-100">
-                    Hoy: 28 de Octubre
+                    Hoy: 29 de Octubre
                   </div>
                 </div>
 
@@ -958,7 +1011,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                     const dateStr = `2026-10-${dayNum < 10 ? '0' + dayNum : dayNum}`;
                     const dayEvts = calendarEvents.filter(e => e.date === dateStr);
                     const isSelected = selectedDay === dayNum;
-                    const isToday = dayNum === 28;
+                    const isToday = dayNum === 29;
 
                     return (
                       <button
@@ -985,7 +1038,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 </div>
               </div>
 
-              {/* Panel Lateral del Día Seleccionado */}
+              {/* Panel Lateral */}
               <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl shadow-purple-100/30 flex flex-col justify-between">
                 <div className="space-y-4">
                   <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
@@ -1085,6 +1138,41 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         )}
 
       </main>
+
+      {/* MODAL CONFIGURACIÓN PENDIENTE DE GOOGLE API */}
+      {showGoogleSetupModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl border border-sky-100">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                <GoogleIcon /> <span>Configurar Google OAuth</span>
+              </h2>
+              <button onClick={() => setShowGoogleSetupModal(false)} className="text-slate-400 hover:text-slate-600 text-xs font-bold">✕</button>
+            </div>
+
+            <div className="space-y-3 text-xs text-slate-600 leading-relaxed">
+              <p className="p-3 bg-amber-50 border border-amber-200 text-amber-800 font-semibold rounded-2xl">
+                ⚠️ Falta ingresar el <strong>NEXT_PUBLIC_GOOGLE_CLIENT_ID</strong> en tus Variables de Entorno de Vercel.
+              </p>
+
+              <p>Para habilitar la autenticación real con Google Calendar:</p>
+
+              <ol className="list-decimal pl-4 space-y-1.5 font-medium text-slate-700">
+                <li>Ve a <strong>Google Cloud Console</strong> &gt; Credenciales.</li>
+                <li>Crea un Client ID de tipo <em>Aplicación Web</em>.</li>
+                <li>Añade la variable en Vercel: <br/><code className="bg-slate-100 px-1.5 py-0.5 rounded font-mono text-[11px] text-purple-700">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>.</li>
+              </ol>
+            </div>
+
+            <button
+              onClick={() => setShowGoogleSetupModal(false)}
+              className="w-full py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-200"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* MODAL UNIFICADO (+ CREAR) */}
       {createType && (
