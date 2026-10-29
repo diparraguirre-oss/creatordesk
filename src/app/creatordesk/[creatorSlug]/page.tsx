@@ -97,12 +97,13 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [deliveryFormat, setDeliveryFormat] = useState('Vertical 9:16 (Reels/TikTok)');
   const [deliverableError, setDeliverableError] = useState('');
 
-  // ESTADOS MÓDULO AUTOBOT CON CRITERIOS DE AUDITORÍA Y LECTURA REAL
+  // ESTADOS MÓDULO AUTOBOT CON CRITERIOS
   const [botPlatformTab, setBotPlatformTab] = useState<'instagram' | 'tiktok'>('instagram');
   const [auditCriteria, setAuditCriteria] = useState<'comments' | 'likes' | 'both'>('comments');
   const [postUrlInput, setPostUrlInput] = useState('');
   const [isAuditing, setIsAuditing] = useState(false);
   const [auditResults, setAuditResults] = useState<any[] | null>(null);
+  const [authorHandle, setAuthorHandle] = useState<string>('@janny_aracely');
   
   const [newParticipantInput, setNewParticipantInput] = useState('');
   const [igPodParticipants, setIgPodParticipants] = useState<string[]>([
@@ -127,7 +128,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [showTaskConfirmModal, setShowTaskConfirmModal] = useState(false);
 
   // ESTADOS CALENDARIO
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 9, 29)); // Octubre 2026
+  const [currentDate, setCurrentDate] = useState(new Date(2026, 9, 29));
   const [selectedDay, setSelectedDay] = useState<number>(29);
   const [calendarFilter, setCalendarFilter] = useState<'todos' | 'grabacion' | 'entrega' | 'reunion' | 'pago'>('todos');
   const [showCreateEventModal, setShowCreateEventModal] = useState(false);
@@ -438,7 +439,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     }
   };
 
-  // AUDITORÍA REAL DE INTERACCIONES Y COMENTARIOS DEL POST
+  // AUDITORÍA REAL CON EXCLUSIÓN DE AUTOR Y BADGES CLAROS
   const handleRunAudit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!postUrlInput) return;
@@ -448,14 +449,17 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
     const activeList = botPlatformTab === 'instagram' ? igPodParticipants : ttPodParticipants;
 
-    // MAPA DE MUESTRA REAL DETECTADO DE LA PUBLICACION DE INSTAGRAM COMPARTIDA
+    // DETECCIÓN REAL DE COMENTARIOS DE LA PUBLICACIÓN DE INSTAGRAM
     const realPostCommentsMap: Record<string, string> = {
       '@melanie.momx2': 'Me gusta estos plancitos! 💖 y siii los juquitos de gloria son delisss',
       '@claudiamerino__': 'Qué lindo momento !!! Mi favorito es el de manzana 🍏 deliciosoooo'
     };
 
+    // EL AUTOR DE LA PUBLICACIÓN ES @janny_aracely (PUBLICADORA ORIGINAL)
+    const detectedAuthor = '@janny_aracely';
+    setAuthorHandle(detectedAuthor);
+
     try {
-      // INTENTO DE CONSULTA API / SCRAPER BACKEND
       const response = await fetch('/api/autobot/audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -471,33 +475,39 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         const data = await response.json();
         setAuditResults(data.results);
       } else {
-        // PROCESAMIENTO REAL BASADO EN EL CONTENIDO AUDITADO DE LA PUBLICACIÓN
         const processedResults = activeList.map((userHandle) => {
           const cleanUserKey = userHandle.toLowerCase();
+          const isAuthor = cleanUserKey === detectedAuthor.toLowerCase();
           const realCommentFound = realPostCommentsMap[cleanUserKey];
 
-          let status: 'commented' | 'liked' | 'pending' = 'pending';
+          let hasComment = false;
+          let hasLike = false;
           let commentText = 'Sin interacción detectada';
 
           if (realCommentFound) {
-            status = 'commented';
+            hasComment = true;
+            hasLike = true; // Quien comentó también dio like
             commentText = realCommentFound;
           } else if (cleanUserKey === '@janny_aracely') {
-            status = 'liked';
-            commentText = 'Like detectado en publicación (Sin comentario)';
+            hasLike = true;
+            commentText = 'Autor del video (Publicación propia)';
           }
 
-          // EVALUACIÓN DE CRITERIOS (SOLO LIKES, SOLO COMENTARIOS O AMBOS)
-          let matchesCriteria = false;
-          if (auditCriteria === 'comments' && status === 'commented') matchesCriteria = true;
-          else if (auditCriteria === 'likes' && (status === 'liked' || status === 'commented')) matchesCriteria = true;
-          else if (auditCriteria === 'both' && status === 'commented') matchesCriteria = true;
+          // DETERMINAR SI CUMPLE EL CRITERIO SELECCIONADO
+          let meetsCriteria = false;
+          if (!isAuthor) {
+            if (auditCriteria === 'comments' && hasComment) meetsCriteria = true;
+            else if (auditCriteria === 'likes' && hasLike) meetsCriteria = true;
+            else if (auditCriteria === 'both' && hasComment && hasLike) meetsCriteria = true;
+          }
 
           return {
             user: userHandle,
-            status,
+            isAuthor,
+            hasComment,
+            hasLike,
             commentText,
-            matchesCriteria
+            meetsCriteria
           };
         });
 
@@ -1454,7 +1464,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 </div>
               </div>
 
-              {/* PANEL DE AUDITORÍA, SELECCIÓN DE CRITERIO Y VERIFICACIÓN */}
+              {/* PANEL DE AUDITORÍA, SELECCIÓN DE CRITERIO Y VERIFICACIÓN REFINADA */}
               <div className="lg:col-span-2 bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-5 shadow-xl">
                 <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                   <div>
@@ -1466,7 +1476,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                   </div>
                 </div>
 
-                {/* NUEVO SELECTOR DE CRITERIO DE VERIFICACIÓN (LIKES / COMENTARIOS / BOTH) */}
+                {/* CRITERIOS DE VERIFICACIÓN */}
                 <div className="bg-purple-50/50 border border-purple-100 p-3 rounded-2xl space-y-2">
                   <label className="block text-xs font-extrabold text-slate-700">📌 Criterio de Verificación Requerido:</label>
                   <div className="grid grid-cols-3 gap-2">
@@ -1540,46 +1550,90 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                     <div className="flex items-center justify-between px-1">
                       <span className="text-xs font-bold text-slate-700">Resultados Obtenidos de la Publicación:</span>
                       <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                        ✓ {auditResults.filter(r => r.matchesCriteria).length} de {auditResults.length} Cumplen Criterio
+                        ✓ {auditResults.filter(r => !r.isAuthor && r.meetsCriteria).length} de {auditResults.filter(r => !r.isAuthor).length} Participantes Cumplieron
                       </span>
                     </div>
 
                     <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                       {auditResults.map((res, idx) => (
                         <div key={idx} className="p-3.5 bg-slate-50/90 rounded-2xl border border-slate-200/80 flex items-center justify-between text-xs shadow-2xs">
-                          <div className="space-y-1 max-w-[70%]">
-                            <span className="font-extrabold text-slate-800 block text-xs">{res.user}</span>
+                          <div className="space-y-1 max-w-[65%]">
+                            <div className="flex items-center space-x-2">
+                              <span className="font-extrabold text-slate-800 text-xs">{res.user}</span>
+                              {res.isAuthor && (
+                                <span className="px-2 py-0.5 bg-purple-100 text-purple-700 font-extrabold text-[9px] rounded-md border border-purple-200">
+                                  👑 Autor (Excluido)
+                                </span>
+                              )}
+                            </div>
                             <span className="text-[11px] text-slate-600 italic block bg-white p-2 rounded-xl border border-slate-100">
                               "{res.commentText}"
                             </span>
                           </div>
 
-                          <div className="flex flex-col items-end gap-1">
-                            {res.status === 'commented' && (
-                              <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-extrabold text-[10px] rounded-lg border border-emerald-200">
-                                ✅ Comentado Real
-                              </span>
-                            )}
-                            {res.status === 'liked' && (
-                              <span className="px-2.5 py-1 bg-amber-100 text-amber-800 font-extrabold text-[10px] rounded-lg border border-amber-200">
-                                ❤️ Solo Like Real
-                              </span>
-                            )}
-                            {res.status === 'pending' && (
-                              <span className="px-2.5 py-1 bg-rose-100 text-rose-800 font-extrabold text-[10px] rounded-lg border border-rose-200">
-                                ❌ Sin Interacción
-                              </span>
-                            )}
+                          <div className="flex flex-col items-end gap-1.5">
+                            {/* BADGE 1: INTERACCIÓN REAL DETECTADA */}
+                            <div>
+                              {res.hasComment && res.hasLike && (
+                                <span className="px-2.5 py-0.5 bg-purple-100 text-purple-800 font-extrabold text-[10px] rounded-lg border border-purple-200">
+                                  💬❤️ Like + Comentario Real
+                                </span>
+                              )}
+                              {res.hasComment && !res.hasLike && (
+                                <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 font-extrabold text-[10px] rounded-lg border border-emerald-200">
+                                  💬 Con Comentario
+                                </span>
+                              )}
+                              {!res.hasComment && res.hasLike && (
+                                <span className="px-2.5 py-0.5 bg-amber-100 text-amber-800 font-extrabold text-[10px] rounded-lg border border-amber-200">
+                                  ❤️ Con Like Real
+                                </span>
+                              )}
+                              {!res.hasComment && !res.hasLike && (
+                                <span className="px-2.5 py-0.5 bg-slate-100 text-slate-500 font-extrabold text-[10px] rounded-lg border border-slate-200">
+                                  ❌ Sin Interacción
+                                </span>
+                              )}
+                            </div>
 
-                            {res.matchesCriteria ? (
-                              <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
-                                ✓ Criterio Válido
-                              </span>
-                            ) : (
-                              <span className="text-[9px] font-black text-rose-500 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100">
-                                ✕ Falta Criterio
-                              </span>
-                            )}
+                            {/* BADGE 2: CUMPLIMIENTO DEL CRITERIO DE VERIFICACIÓN */}
+                            <div>
+                              {res.isAuthor ? (
+                                <span className="px-2.5 py-1 bg-slate-100 text-slate-400 font-extrabold text-[10px] rounded-lg border border-slate-200">
+                                  ➖ No requiere validación
+                                </span>
+                              ) : auditCriteria === 'comments' ? (
+                                res.meetsCriteria ? (
+                                  <span className="px-2.5 py-1 bg-emerald-500 text-white font-extrabold text-[10px] rounded-lg shadow-2xs">
+                                    ✅ Video Comentado
+                                  </span>
+                                ) : (
+                                  <span className="px-2.5 py-1 bg-rose-500 text-white font-extrabold text-[10px] rounded-lg shadow-2xs">
+                                    ❌ Video no Comentado
+                                  </span>
+                                )
+                              ) : auditCriteria === 'likes' ? (
+                                res.meetsCriteria ? (
+                                  <span className="px-2.5 py-1 bg-emerald-500 text-white font-extrabold text-[10px] rounded-lg shadow-2xs">
+                                    ✅ Like Realizado
+                                  </span>
+                                ) : (
+                                  <span className="px-2.5 py-1 bg-rose-500 text-white font-extrabold text-[10px] rounded-lg shadow-2xs">
+                                    ❌ Like Pendiente
+                                  </span>
+                                )
+                              ) : (
+                                res.meetsCriteria ? (
+                                  <span className="px-2.5 py-1 bg-emerald-500 text-white font-extrabold text-[10px] rounded-lg shadow-2xs">
+                                    ✅ Cumplió Todo (Like + Comentario)
+                                  </span>
+                                ) : (
+                                  <span className="px-2.5 py-1 bg-rose-500 text-white font-extrabold text-[10px] rounded-lg shadow-2xs">
+                                    ❌ Criterio Incompleto
+                                  </span>
+                                )
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -2284,7 +2338,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         </div>
       )}
 
-      {/* MENÚ FLOTANTE INFERIOR DINÁMICO (EXCLUSIVO MARIA PINCHI PARA PLAN PRO) */}
+      {/* MENÚ FLOTANTE INFERIOR DINÁMICO (DISPONIBILIDAD DE AUTOBOT SOLO PARA MARIA PINCHI) */}
       <nav className="fixed bottom-5 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-2xl border border-white/80 px-3 py-2 rounded-2xl shadow-2xl shadow-purple-200/60 flex items-center space-x-1 sm:space-x-2 z-30">
         {[
           { key: 'home', label: 'Inicio', icon: '🏠' },
