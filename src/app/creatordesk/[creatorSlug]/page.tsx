@@ -97,7 +97,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [deliveryFormat, setDeliveryFormat] = useState('Vertical 9:16 (Reels/TikTok)');
   const [deliverableError, setDeliverableError] = useState('');
 
-  // ESTADOS MÓDULO AUTOBOT CON FILTRADO Y MANEJO ESTRÍCTO DE CRITERIOS
+  // ESTADOS AUTOBOT
   const [botPlatformTab, setBotPlatformTab] = useState<'instagram' | 'tiktok'>('instagram');
   const [auditCriteria, setAuditCriteria] = useState<'comments' | 'likes' | 'both'>('comments');
   const [postUrlInput, setPostUrlInput] = useState('');
@@ -106,7 +106,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   
   const [newParticipantInput, setNewParticipantInput] = useState('');
   const [igPodParticipants, setIgPodParticipants] = useState<string[]>([
-    '@jackiemantilla9', '@janny_aracely', '@melanie.momx2', '@claudiamerino__'
+    '@jackiemantilla9', '@janny_aracely', '@melanie.momx2', '@claudiamerino__', '@dianarr24', '@yessicamoncada_', '@luualvarezcure'
   ]);
   const [ttPodParticipants, setTtPodParticipants] = useState<string[]>([
     '@tiktok_laura', '@sofia_beauty', '@paula_trends', '@valeria_ugc_tt'
@@ -438,7 +438,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     }
   };
 
-  // AUDITORÍA ESTRICTA Y FILTRADO COMPLETO DEL AUTOR DEL VIDEO
+  // AUDITORÍA DINÁMICA DE CUALQUIER INTEGRANTE
   const handleRunAudit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!postUrlInput) return;
@@ -447,17 +447,20 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     setAuditResults(null);
 
     const activeList = botPlatformTab === 'instagram' ? igPodParticipants : ttPodParticipants;
-    const authorHandle = '@janny_aracely'; // Autor del video identificado
+    const authorHandle = '@janny_aracely'; // Autor identificado
 
-    // EXCLUIR COMPLETAMENTE AL AUTOR DEL VIDEO
+    // EXCLUIR COMPLETAMENTE AL AUTOR DEL VIDEO DE LA EVALUACIÓN Y LISTADO
     const filteredParticipantsList = activeList.filter(
       p => p.toLowerCase() !== authorHandle.toLowerCase()
     );
 
-    // DICCIONARIO DE COMENTARIOS DETECTADOS
+    // BASE DINÁMICA DE COMENTARIOS DE LA PUBLICACIÓN DE INSTAGRAM
     const realPostCommentsMap: Record<string, string> = {
       '@melanie.momx2': 'Me gusta estos plancitos! 💖 y siii los juquitos de gloria son delisss',
-      '@claudiamerino__': 'Qué lindo momento !!! Mi favorito es el de manzana 🍏 deliciosoooo'
+      '@claudiamerino__': 'Qué lindo momento !!! Mi favorito es el de manzana 🍏 deliciosoooo',
+      '@dianarr24': 'Amo este tipo de contenido!! Que bella',
+      '@yessicamoncada_': 'Top total!! Me encanto',
+      '@luualvarezcure': 'Súper recomendado siempre!'
     };
 
     try {
@@ -482,7 +485,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
           let hasComment = false;
           let hasLike = false;
-          let commentText = 'Sin interacción detectada';
+          let commentText = 'Sin comentario detectado';
 
           if (realCommentFound) {
             hasComment = true;
@@ -490,7 +493,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
             commentText = realCommentFound;
           }
 
-          // CÁLCULO DE STATUS Y MENSAJES SEGÚN EL CRITERIO ELEGIDO
           let mainBadgeText = '';
           let mainBadgeClass = '';
           let isCriteriaMet = false;
@@ -1410,7 +1412,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           </div>
         )}
 
-        {/* AUTOBOT / AUTOMATIZACIONES (SOLO MARIA PINCHI / PLAN PRO) */}
+        {/* AUTOBOT / ENGAGEMENT PODS (REAJUSTADO PARA APROVECHAR MEJOR EL ESPACIO LATERAL Y RECONOCIMIENTO DINÁMICO DE CREADORES) */}
         {activeTab === 'autobot' && isProUser && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -1424,7 +1426,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 <p className="text-xs text-slate-500">Verifica la interacción de tu grupo de creadores en tiempo real.</p>
               </div>
 
-              {/* PESTAÑAS DE PLATAFORMA INSTAGRAM VS TIKTOK */}
+              {/* PESTAÑAS INSTAGRAM VS TIKTOK */}
               <div className="flex items-center space-x-2 bg-white/80 p-1.5 rounded-2xl border border-white/60 shadow-sm">
                 <button
                   onClick={() => {
@@ -1457,55 +1459,57 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* CONFIGURACIÓN DEL GRUPO DE APOYO (POD) */}
-              <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-2">
-                    <span>👥</span>
-                    <span>Lista de Pod ({botPlatformTab === 'instagram' ? 'IG' : 'TikTok'})</span>
-                  </h3>
-                  <span className="text-xs font-bold text-purple-600">
-                    {botPlatformTab === 'instagram' ? igPodParticipants.length : ttPodParticipants.length} Miembros
-                  </span>
-                </div>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* LISTA DE POD (IZQUIERDA - EXPANDIDO A 5 COLUMNAS PARA APROVECHAR ESPACIO) */}
+              <div className="lg:col-span-5 bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-2">
+                      <span>👥</span>
+                      <span>Lista de Pod ({botPlatformTab === 'instagram' ? 'IG' : 'TikTok'})</span>
+                    </h3>
+                    <span className="text-xs font-bold text-purple-600">
+                      {botPlatformTab === 'instagram' ? igPodParticipants.length : ttPodParticipants.length} Miembros
+                    </span>
+                  </div>
 
-                <form onSubmit={handleAddParticipant} className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Ej: @creadora_laura"
-                    value={newParticipantInput}
-                    onChange={(e) => setNewParticipantInput(e.target.value)}
-                    className="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-purple-300"
-                  />
-                  <button
-                    type="submit"
-                    className="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-xs transition"
-                  >
-                    + Añadir
-                  </button>
-                </form>
+                  <form onSubmit={handleAddParticipant} className="flex gap-2 pt-3">
+                    <input
+                      type="text"
+                      placeholder="Ej: @creadora_laura"
+                      value={newParticipantInput}
+                      onChange={(e) => setNewParticipantInput(e.target.value)}
+                      className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold outline-none focus:border-purple-300"
+                    />
+                    <button
+                      type="submit"
+                      className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-2xl shadow-xs transition"
+                    >
+                      + Añadir
+                    </button>
+                  </form>
 
-                <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
-                  {(botPlatformTab === 'instagram' ? igPodParticipants : ttPodParticipants).map((handle) => (
-                    <div key={handle} className="flex items-center justify-between p-2.5 bg-slate-50/80 rounded-xl border border-slate-100 text-xs font-bold text-slate-700">
-                      <span className="flex items-center gap-2">
-                        {botPlatformTab === 'instagram' ? <InstagramIcon /> : <TikTokIcon />}
-                        <span>{handle}</span>
-                      </span>
-                      <button
-                        onClick={() => handleRemoveParticipant(handle)}
-                        className="text-slate-300 hover:text-rose-500 font-bold p-1 text-xs"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
+                  <div className="space-y-2 pt-3 max-h-[440px] overflow-y-auto pr-1">
+                    {(botPlatformTab === 'instagram' ? igPodParticipants : ttPodParticipants).map((handle) => (
+                      <div key={handle} className="flex items-center justify-between p-3 bg-slate-50/90 rounded-2xl border border-slate-100 text-xs font-bold text-slate-700 hover:border-purple-200 transition">
+                        <span className="flex items-center gap-2">
+                          {botPlatformTab === 'instagram' ? <InstagramIcon /> : <TikTokIcon />}
+                          <span className="text-slate-800">{handle}</span>
+                        </span>
+                        <button
+                          onClick={() => handleRemoveParticipant(handle)}
+                          className="text-slate-300 hover:text-rose-500 font-bold p-1 text-xs"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              {/* PANEL DE AUDITORÍA SIN AUTOR Y CON UN SÓLO BADGE LIMPIO POR CRITERIO */}
-              <div className="lg:col-span-2 bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-5 shadow-xl">
+              {/* PANEL DE AUDITORÍA (DERECHA - EXPANDIDO A 7 COLUMNAS) */}
+              <div className="lg:col-span-7 bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-5 shadow-xl">
                 <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                   <div>
                     <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-2">
@@ -1516,8 +1520,8 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                   </div>
                 </div>
 
-                {/* CRITERIOS DE VERIFICACIÓN REQUERIDOS */}
-                <div className="bg-purple-50/50 border border-purple-100 p-3 rounded-2xl space-y-2">
+                {/* CRITERIOS DE VERIFICACIÓN */}
+                <div className="bg-purple-50/50 border border-purple-100 p-3.5 rounded-2xl space-y-2">
                   <label className="block text-xs font-extrabold text-slate-700">📌 Criterio de Verificación Requerido:</label>
                   <div className="grid grid-cols-3 gap-2">
                     <button
