@@ -134,14 +134,14 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
   const [isGoogleConnected, setIsGoogleConnected] = useState(false);
 
-  // Eventos
+  // Eventos de la Agenda
   const [calendarEvents, setCalendarEvents] = useState<any[]>([
     { id: 'e1', title: 'Grabar Reel para Adidas', brand: 'Adidas', date: '2026-10-28', time: '10:00 hs', category: 'grabacion', source: 'creator' },
     { id: 'e2', title: 'Prueba de calendario desde creatordesk', brand: 'Adidas', date: '2026-10-30', time: '10:00 hs', category: 'entrega', source: 'creator' },
     { id: 'e3', title: 'Fecha Estimada de Cobro Factura', brand: 'Adidas', date: '2026-11-05', time: '09:00 hs', category: 'pago', source: 'creator' }
   ]);
 
-  // CARGAR EVENTOS DESDE GOOGLE CALENDAR API
+  // CARGAR EVENTOS DESDE GOOGLE CALENDAR API SI EXISTE TOKEN
   const fetchGoogleCalendarEvents = async (token: string) => {
     try {
       const response = await fetch(
@@ -213,7 +213,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     window.location.href = authUrl;
   };
 
-  // Formulario
+  // Formulario de creación
   const [createTitle, setCreateTitle] = useState('');
   const [createBrand, setCreateBrand] = useState('');
   const [createDate, setCreateDate] = useState('2026-10-30');
@@ -222,26 +222,137 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
   const [tasks, setTasks] = useState([
     { id: 't1', title: 'Enviar guión para aprobación a Adidas', brand: 'Adidas', status: 'pendiente', category: 'Grabar' },
-    { id: 't2', title: 'Grabar video de unboxing cosméticos', brand: 'Aurelia', status: 'pendiente', category: 'Grabar' }
+    { id: 't2', title: 'Grabar video de unboxing cosméticos', brand: 'Aurelia', status: 'pendiente', category: 'Grabar' },
+    { id: 't3', title: 'Revisar contrato de patrocinio', brand: 'Loto Spa', status: 'completada', category: 'Manual' }
   ]);
 
-  const [colabs, setColabs] = useState<any[]>([]);
+  const [colabs, setColabs] = useState([
+    {
+      id: '1',
+      brand: 'Adidas Originals',
+      contactName: 'Carlos Mendoza (Brand Manager)',
+      dealType: 'Pago',
+      currency: 'USD',
+      amount: 1500,
+      paymentDays: 30,
+      status: 'Guión Aprobado',
+      isUgc: false,
+      deliverables: [
+        { type: 'instagram', label: '2 Reels' },
+        { type: 'instagram', label: '3 Stories' },
+        { type: 'evento', label: '1 Evento' }
+      ],
+      statusHistory: {
+        'Campaña Recibida': '20/10/2026, 10:15 hs',
+        'Guión Aprobado': '28/10/2026, 23:10 hs'
+      }
+    },
+    {
+      id: '2',
+      brand: 'Aurelia Cosmetics',
+      contactName: 'Valeria Silva (PR Lead)',
+      dealType: 'Canje',
+      currency: 'PEN',
+      amount: 0,
+      paymentDays: 0,
+      status: 'En Grabación',
+      isUgc: true,
+      ugcDetails: {
+        usageRightsDays: '60 días',
+        includesRawFootage: true,
+        allowAdsUsage: true,
+        categoryExclusivity: '30 días en Cosméticos',
+        deliveryFormat: 'Vertical 9:16 (Móvil)'
+      },
+      deliverables: [
+        { type: 'tiktok', label: '1 TikTok UGC' },
+        { type: 'facebook', label: '1 Post' }
+      ],
+      statusHistory: {
+        'Campaña Recibida': '22/10/2026, 09:00 hs',
+        'En Grabación': '27/10/2026, 16:45 hs'
+      }
+    },
+    {
+      id: '3',
+      brand: 'Yolu',
+      contactName: 'Yordy Picon',
+      dealType: 'Pago',
+      currency: 'PEN',
+      amount: 500,
+      paymentDays: 30,
+      status: 'Campaña Recibida',
+      isUgc: true,
+      ugcDetails: {
+        usageRightsDays: '30 días',
+        includesRawFootage: false,
+        allowAdsUsage: true,
+        categoryExclusivity: 'Sin Exclusividad',
+        deliveryFormat: 'Vertical 9:16 (Móvil)'
+      },
+      deliverables: [
+        { type: 'instagram', label: '1 Reels' },
+        { type: 'tiktok', label: '1 TikToks' }
+      ],
+      statusHistory: {
+        'Campaña Recibida': '28/10/2026, 11:20 hs'
+      }
+    }
+  ]);
 
   useEffect(() => {
     const localUser = localStorage.getItem('creatordesk_user');
+
     if (localUser) {
       try {
         const parsed = JSON.parse(localUser);
         setUser(parsed);
-        setDisplayName(parsed.full_name || 'Creador');
+
+        const rawSlug = parsed.slug || params?.creatorSlug || '';
+        const formattedName = parsed.full_name || rawSlug.split('.').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        setDisplayName(formattedName || 'Creador');
+
+        const createdTime = parsed.created_at ? new Date(parsed.created_at) : new Date();
+        const expiresTime = new Date(createdTime.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+        const now = new Date();
+        const diffMs = expiresTime.getTime() - now.getTime();
+        const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+        setDaysRemaining(days);
+        if (days <= 0) {
+          setIsExpired(true);
+        }
       } catch (e) {
+        setUser({ email: 'Creador Activo', slug: params?.creatorSlug || 'creador' });
         setDisplayName('Creador');
       }
+    } else {
+      window.location.href = '/login';
+      return;
     }
-    setLoading(false);
-  }, []);
 
-  // CREAR EVENTO CON CREACIÓN SIMULTÁNEA EN GOOGLE CALENDAR
+    setLoading(false);
+  }, [params?.creatorSlug]);
+
+  const EXCHANGE_RATE_PEN_TO_USD = 3.75;
+
+  const pendingColabs = colabs.filter(c => c.status !== 'Factura Cobrada' && c.status !== 'Campaña Cancelada' && c.dealType === 'Pago');
+  const paidColabs = colabs.filter(c => c.status === 'Factura Cobrada' && c.dealType === 'Pago');
+
+  const totalPendingUsdConverted = pendingColabs.reduce((acc, c) => {
+    if (c.currency === 'USD') return acc + (c.amount || 0);
+    return acc + ((c.amount || 0) / EXCHANGE_RATE_PEN_TO_USD);
+  }, 0);
+
+  const totalPaidUsdConverted = paidColabs.reduce((acc, c) => {
+    if (c.currency === 'USD') return acc + (c.amount || 0);
+    return acc + ((c.amount || 0) / EXCHANGE_RATE_PEN_TO_USD);
+  }, 0);
+
+  const activeBrandsNames = colabs.filter(c => c.status !== 'Campaña Cancelada').map(c => c.brand).join(', ');
+
+  // CREAR EVENTO CON SINCRONIZACIÓN GOOGLE
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!createTitle) return;
@@ -282,7 +393,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
             })
           });
 
-          // Refrescar eventos
           fetchGoogleCalendarEvents(googleToken);
         } catch (err) {
           console.error('Error al sincronizar con Google Calendar:', err);
@@ -308,6 +418,159 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     setCalendarEvents(calendarEvents.filter(e => e.id !== eventId));
   };
 
+  const handleTaskCheckboxClick = (task: any) => {
+    if (task.status === 'completada') return;
+    setPendingTask(task);
+    setShowTaskConfirmModal(true);
+  };
+
+  const handleConfirmTaskDone = () => {
+    if (!pendingTask) return;
+    setTasks(tasks.map(t => t.id === pendingTask.id ? { ...t, status: 'completada' } : t));
+    setShowTaskConfirmModal(false);
+    setPendingTask(null);
+  };
+
+  const handleDeleteColab = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setColabs(colabs.filter(c => c.id !== id));
+    setColabToDelete(null);
+  };
+
+  const totalDeliverablesCount = deliverables.reels + deliverables.tiktoks + deliverables.stories + deliverables.facebook + deliverables.youtube + deliverables.evento;
+
+  const getExactNowTimestamp = () => {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    return `${dateStr}, ${timeStr} hs`;
+  };
+
+  const handleCreateColab = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (totalDeliverablesCount === 0) {
+      setDeliverableError('Debe seleccionar al menos 1 contenido a entregar.');
+      return;
+    }
+    setDeliverableError('');
+    if (!brandName) return;
+
+    const delivArray = [];
+    if (deliverables.reels > 0) delivArray.push({ type: 'instagram', label: `${deliverables.reels} Reels` });
+    if (deliverables.stories > 0) delivArray.push({ type: 'instagram', label: `${deliverables.stories} Stories` });
+    if (deliverables.tiktoks > 0) delivArray.push({ type: 'tiktok', label: `${deliverables.tiktoks} TikToks` });
+    if (deliverables.facebook > 0) delivArray.push({ type: 'facebook', label: `${deliverables.facebook} Facebook` });
+    if (deliverables.youtube > 0) delivArray.push({ type: 'youtube', label: `${deliverables.youtube} YouTube` });
+    if (deliverables.evento > 0) delivArray.push({ type: 'evento', label: `${deliverables.evento} Eventos` });
+
+    const nowTimestamp = getExactNowTimestamp();
+
+    const newColabObj = {
+      id: String(Date.now()),
+      brand: brandName,
+      contactName: contactName || 'Contacto directo',
+      dealType: dealType,
+      currency: dealType === 'Pago' ? currency : 'PEN',
+      amount: dealType === 'Pago' ? Number(amount) || 0 : 0,
+      paymentDays: Number(paymentDays),
+      status: 'Campaña Recibida',
+      isUgc: isUgc,
+      ugcDetails: isUgc ? { usageRightsDays, includesRawFootage, allowAdsUsage, categoryExclusivity, deliveryFormat } : null,
+      deliverables: delivArray,
+      statusHistory: { 'Campaña Recibida': nowTimestamp }
+    };
+
+    setColabs([newColabObj, ...colabs]);
+    setShowNewColabModal(false);
+    setBrandName('');
+    setContactName('');
+    setAmount('');
+    setIsUgc(false);
+    setDeliverables({ reels: 0, tiktoks: 0, stories: 0, facebook: 0, youtube: 0, evento: 0 });
+  };
+
+  const getStageIndex = (status: string) => {
+    if (CAMPAIGN_STAGES[0].statuses.includes(status)) return 0;
+    if (CAMPAIGN_STAGES[1].statuses.includes(status)) return 1;
+    if (CAMPAIGN_STAGES[2].statuses.includes(status)) return 2;
+    if (CAMPAIGN_STAGES[3].statuses.includes(status)) return 3;
+    return 0;
+  };
+
+  const handleStrictStatusChange = (colab: any, targetStatus: string) => {
+    setStatusErrorMsg('');
+    const currentStatus = colab.status;
+
+    if (currentStatus === 'Campaña Cancelada' && targetStatus !== 'Campaña Cancelada') {
+      setStatusErrorMsg('La campaña está cancelada. No es posible avanzar a otras etapas.');
+      return;
+    }
+    if (targetStatus === 'Campaña Cancelada') {
+      applyStatusUpdate(colab.id, targetStatus);
+      return;
+    }
+    if (currentStatus === 'Guión Observado' && targetStatus !== 'Guión Aprobado' && targetStatus !== 'Guión Enviado') {
+      setStatusErrorMsg('El guión está observado. Debes corregirlo y aprobarlo ("Guión Aprobado") antes de pasar a producción.');
+      return;
+    }
+    if (currentStatus === 'Video Observado' && targetStatus !== 'Video Aprobado' && targetStatus !== 'En Edición') {
+      setStatusErrorMsg('El video está observado. Debes aprobarlo ("Video Aprobado") antes de poder publicarlo o facturar.');
+      return;
+    }
+    if (targetStatus === 'Guión Observado' || targetStatus === 'Video Observado') {
+      applyStatusUpdate(colab.id, targetStatus);
+      return;
+    }
+
+    const currentIdx = STATUS_SEQUENCE.indexOf(currentStatus);
+    const targetIdx = STATUS_SEQUENCE.indexOf(targetStatus);
+
+    if (currentIdx !== -1 && targetIdx !== -1) {
+      if (targetIdx > currentIdx + 1) {
+        setStatusErrorMsg(`No puedes saltar de "${currentStatus}" a "${targetStatus}". El flujo debe ser paso a paso: ${STATUS_SEQUENCE[currentIdx + 1]}.`);
+        return;
+      }
+    }
+    applyStatusUpdate(colab.id, targetStatus);
+  };
+
+  const applyStatusUpdate = (colabId: string, newStatus: string) => {
+    const nowTimestamp = getExactNowTimestamp();
+    setColabs(colabs.map(c => {
+      if (c.id === colabId) {
+        const updatedHistory = { ...c.statusHistory, [newStatus]: nowTimestamp };
+        return { ...c, status: newStatus, statusHistory: updatedHistory };
+      }
+      return c;
+    }));
+
+    if (statusModalColab && statusModalColab.id === colabId) {
+      const updatedHistory = { ...statusModalColab.statusHistory, [newStatus]: nowTimestamp };
+      setStatusModalColab({ ...statusModalColab, status: newStatus, statusHistory: updatedHistory });
+    }
+  };
+
+  const filteredColabs = colabs.filter(c => {
+    if (colabFilter === 'todas') return true;
+    const stageIdx = getStageIndex(c.status);
+    if (colabFilter === 'negociacion') return stageIdx === 0;
+    if (colabFilter === 'preprod') return stageIdx === 1;
+    if (colabFilter === 'prod') return stageIdx === 2;
+    if (colabFilter === 'cobro') return stageIdx === 3;
+    return true;
+  });
+
+  const renderSocialIcon = (type: string) => {
+    switch (type) {
+      case 'instagram': return <InstagramIcon />;
+      case 'tiktok': return <TikTokIcon />;
+      case 'facebook': return <FacebookIcon />;
+      case 'youtube': return <YoutubeIcon />;
+      case 'evento': return <EventIcon />;
+      default: return <InstagramIcon />;
+    }
+  };
+
   const getCategoryBadge = (cat: string) => {
     switch (cat) {
       case 'grabacion': return <span className="px-2 py-0.5 bg-purple-100 text-purple-700 font-bold text-[10px] rounded-md border border-purple-200">🎥 Grabación</span>;
@@ -329,180 +592,713 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       <header className="sticky top-0 z-40 bg-white/70 backdrop-blur-xl border-b border-purple-100/60 px-6 py-4 shadow-sm">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-tr from-purple-500 to-pink-500 rounded-xl flex items-center justify-center font-black text-white text-sm shadow-md">
+            <div className="w-10 h-10 bg-gradient-to-tr from-purple-500 to-pink-500 rounded-xl flex items-center justify-center font-black text-white text-sm shadow-md shadow-purple-200">
               CD
             </div>
-            <h1 className="text-base font-extrabold text-slate-800">CreatorDesk</h1>
+            <div>
+              <h1 className="text-base font-extrabold text-slate-800 tracking-tight">CreatorDesk</h1>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3">
+            <span className="hidden sm:inline-block px-3 py-1 bg-purple-100/80 border border-purple-200 text-purple-700 text-[11px] font-bold rounded-lg uppercase">
+              {daysRemaining > 0 ? `Prueba (${daysRemaining} Días)` : 'Plan Activo'}
+            </span>
+            <button
+              onClick={() => {
+                localStorage.removeItem('creatordesk_user');
+                window.location.href = '/login';
+              }}
+              className="px-3.5 py-1.5 bg-white/80 hover:bg-white border border-slate-200 text-xs font-semibold rounded-xl text-slate-700 transition shadow-sm"
+            >
+              Salir
+            </button>
           </div>
         </div>
       </header>
 
       <main className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-bold text-slate-800">Agenda & Google Calendar</h2>
-            <p className="text-xs text-slate-500">Sincronización bidireccional activada en tiempo real.</p>
-          </div>
+        
+        {/* HOME */}
+        {activeTab === 'home' && (
+          <div className="space-y-6">
+            <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-1.5 shadow-xl shadow-purple-100/50">
+              <h2 className="text-2xl font-black text-slate-800">¡Hola, {displayName}! 👋</h2>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                ¡Qué alegría verte de nuevo! Aquí tienes el resumen actualizado de tus colaboraciones, tareas y métricas de este mes.
+              </p>
+            </div>
 
-          <div className="flex items-center space-x-3 relative">
-            <button
-              onClick={handleGoogleAuthConnect}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border shadow-sm ${
-                isGoogleConnected
-                  ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
-                  : 'bg-white border-slate-200 text-slate-700'
-              }`}
-            >
-              <GoogleIcon />
-              <span>{isGoogleConnected ? '✓ Google Conectado' : 'Conectar Google'}</span>
-            </button>
-
-            <div className="relative">
-              <button
-                onClick={() => setShowCreateDropdown(!showCreateDropdown)}
-                className="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-purple-200 transition flex items-center gap-2"
-              >
-                <span className="text-base font-black">+</span>
-                <span>Crear</span>
-                <span className="text-[10px]">▼</span>
-              </button>
-
-              {showCreateDropdown && (
-                <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-2xl border border-purple-100 py-2 z-50">
-                  <button
-                    onClick={() => { setCreateType('evento'); setShowCreateDropdown(false); }}
-                    className="w-full text-left px-4 py-2.5 hover:bg-purple-50 text-xs font-bold text-slate-700 flex items-center gap-2.5"
-                  >
-                    <span className="text-base">📅</span>
-                    <div>
-                      <div>Evento</div>
-                      <p className="text-[10px] text-slate-400 font-normal">Sincroniza con Google Calendar</p>
-                    </div>
-                  </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-5 rounded-2xl space-y-2 shadow-lg shadow-purple-100/30">
+                <span className="text-xs text-slate-500 font-semibold block">💰 Total Cobrado</span>
+                <div className="text-2xl font-black text-emerald-600">
+                  $ {totalPaidUsdConverted.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
-              )}
+                <p className="text-[10px] text-slate-400">{paidColabs.length} campañas cobradas</p>
+              </div>
+
+              <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-5 rounded-2xl space-y-2 shadow-lg shadow-purple-100/30">
+                <span className="text-xs text-slate-500 font-semibold block">⏳ Pendiente por Cobrar</span>
+                <div className="text-2xl font-black text-amber-500">
+                  $ {totalPendingUsdConverted.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                <p className="text-[10px] text-slate-400 font-medium">
+                  {pendingColabs.length} campañas en proceso ($ 1,500 + S/ 500)
+                </p>
+              </div>
+
+              <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-5 rounded-2xl space-y-2 shadow-lg shadow-purple-100/30 sm:col-span-2 lg:col-span-1">
+                <span className="text-xs text-slate-500 font-semibold block">📊 Colaboraciones Activas</span>
+                <div className="text-2xl font-black text-purple-600">{colabs.filter(c => c.status !== 'Campaña Cancelada').length} Marcas</div>
+                <p className="text-[10px] text-purple-500 font-medium truncate">{activeBrandsNames || 'Sin campañas activas'}</p>
+              </div>
+            </div>
+
+            <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-2xl space-y-4 shadow-xl shadow-purple-100/40">
+              <div className="flex items-center justify-between px-3.5">
+                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-3">
+                  <span className="text-sm leading-none">✅</span>
+                  <span>Tareas Prioritarias de Hoy</span>
+                </h3>
+                <button
+                  onClick={() => setActiveTab('tasks')}
+                  className="text-xs text-purple-600 font-bold hover:underline"
+                >
+                  Ver todas
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {tasks.map((t) => (
+                  <div key={t.id} className="flex items-center justify-between p-3.5 bg-slate-50/80 border border-slate-200/80 rounded-xl text-xs">
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        checked={t.status === 'completada'}
+                        disabled={t.status === 'completada'}
+                        onChange={() => handleTaskCheckboxClick(t)}
+                        className="rounded border-slate-300 text-purple-600 focus:ring-purple-400 cursor-pointer disabled:cursor-not-allowed"
+                      />
+                      <span className={t.status === 'completada' ? 'line-through text-slate-400 font-medium' : 'text-slate-800 font-medium'}>
+                        {t.title}
+                      </span>
+                    </div>
+                    <span className="px-2 py-0.5 bg-purple-100 border border-purple-200 text-purple-700 text-[10px] rounded-md font-semibold">
+                      {t.brand}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-extrabold text-slate-800 text-base">October 2026</h3>
+        {/* COLABS */}
+        {activeTab === 'colabs' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">Gestión de Colaboraciones</h2>
+                <p className="text-xs text-slate-500">Supervisa el flujo de tus campañas y redes sociales en tiempo real.</p>
+              </div>
+              <button
+                onClick={() => {
+                  setDeliverableError('');
+                  setShowNewColabModal(true);
+                }}
+                className="px-4 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-200 transition"
+              >
+                + Nueva Colaboración
+              </button>
             </div>
 
-            <div className="grid grid-cols-7 gap-1.5">
-              {[...Array(31)].map((_, i) => {
-                const dayNum = i + 1;
-                const isSelected = selectedDay === dayNum;
+            <div className="flex items-center space-x-2 bg-white/80 p-1.5 rounded-2xl border border-white/60 shadow-sm overflow-x-auto">
+              {[
+                { key: 'todas', label: 'Todas' },
+                { key: 'negociacion', label: '📬 Negociación' },
+                { key: 'preprod', label: '📝 Pre-Producción' },
+                { key: 'prod', label: '🎬 Producción & Entrega' },
+                { key: 'cobro', label: '💵 Facturación & Cobro' }
+              ].map((f) => (
+                <button
+                  key={f.key}
+                  onClick={() => setColabFilter(f.key)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                    colabFilter === f.key
+                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {filteredColabs.map((c) => {
+                const currentStageIdx = getStageIndex(c.status);
+                const lastDateWithTime = c.statusHistory?.[c.status] || getExactNowTimestamp();
+                const isNegociacion = currentStageIdx === 0;
+
                 return (
-                  <button
-                    key={dayNum}
-                    onClick={() => setSelectedDay(dayNum)}
-                    className={`h-12 rounded-2xl flex flex-col items-center justify-between p-1.5 text-xs font-bold border ${
-                      isSelected
-                        ? 'bg-gradient-to-tr from-purple-500 to-pink-500 text-white border-transparent shadow-md'
-                        : 'bg-white/60 border-slate-100 text-slate-700'
-                    }`}
+                  <div
+                    key={c.id}
+                    className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl shadow-purple-100/30 hover:border-purple-300 transition relative"
                   >
-                    <span>{dayNum}</span>
-                  </button>
+                    <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <h3 className="font-black text-slate-800 text-lg">{c.brand}</h3>
+                          <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-extrabold border ${
+                            c.dealType === 'Canje'
+                              ? 'bg-pink-50 border-pink-200 text-pink-600'
+                              : 'bg-purple-50 border-purple-200 text-purple-600'
+                          }`}>
+                            {c.dealType}
+                          </span>
+                          {c.isUgc && (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-indigo-100 border border-indigo-200 text-indigo-700">
+                              ⚡ UGC
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs font-semibold text-purple-600 flex items-center gap-1">
+                          👤 <span>{c.contactName || 'Sin contacto asignado'}</span>
+                        </p>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        {c.dealType === 'Pago' ? (
+                          <div className="px-3.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-700 font-black text-base shadow-2xs">
+                            {c.currency === 'USD' ? `$ ${c.amount}` : `S/ ${c.amount}`}
+                          </div>
+                        ) : (
+                          <div className="px-3 py-1 bg-pink-50 border border-pink-200 rounded-xl text-xs font-black text-pink-600">
+                            Canje Directo
+                          </div>
+                        )}
+
+                        {isNegociacion && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setColabToDelete(c);
+                            }}
+                            className="p-1.5 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 transition"
+                            title="Borrar colaboración (Solo en Negociación)"
+                          >
+                            <TrashIcon />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex flex-wrap gap-1.5">
+                        {c.deliverables?.map((d: any, idx: number) => (
+                          <span key={idx} className="px-2.5 py-1 bg-slate-50 border border-slate-200 text-slate-700 font-semibold text-[11px] rounded-lg flex items-center gap-1.5 shadow-2xs">
+                            {renderSocialIcon(d.type)}
+                            <span>{d.label}</span>
+                          </span>
+                        ))}
+                      </div>
+
+                      <button
+                        onClick={() => setInfoModalColab(c)}
+                        className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs rounded-xl border border-purple-200 transition whitespace-nowrap flex items-center gap-1"
+                      >
+                        👁️ Info
+                      </button>
+                    </div>
+
+                    <div className="space-y-2 pt-2 p-3 rounded-2xl bg-slate-50/60 border border-slate-100">
+                      <div className="flex justify-between items-center text-[10px] font-semibold">
+                        <span className="text-purple-700 font-bold flex items-center gap-1">
+                          📌 Estado Actual: <span>{c.status}</span>
+                        </span>
+                        <span className="text-slate-400">Último cambio: <strong className="text-purple-600 font-bold">{lastDateWithTime}</strong></span>
+                      </div>
+
+                      <div className="relative flex items-center justify-between pt-1">
+                        <div className="absolute top-1/2 left-2 right-2 -translate-y-1/2 h-0.5 bg-slate-200 -z-0"></div>
+                        <div
+                          className="absolute top-1/2 left-2 -translate-y-1/2 h-0.5 bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500 -z-0"
+                          style={{ width: `${(currentStageIdx / 3) * 100}%` }}
+                        ></div>
+
+                        {CAMPAIGN_STAGES.map((stg, idx) => {
+                          const isCompleted = idx <= currentStageIdx;
+                          return (
+                            <div key={stg.stage} className="relative z-10 flex flex-col items-center">
+                              <div
+                                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                                  isCompleted
+                                    ? 'bg-gradient-to-tr from-purple-500 to-pink-500 text-white shadow-md shadow-purple-200 ring-2 ring-white'
+                                    : 'bg-slate-100 text-slate-400 border border-slate-300'
+                                }`}
+                              >
+                                {isCompleted ? '✓' : idx + 1}
+                              </div>
+                              <span className={`text-[10px] mt-1 font-semibold ${
+                                isCompleted ? 'text-purple-700 font-bold' : 'text-slate-400'
+                              }`}>
+                                {stg.stage}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="pt-1 flex items-center justify-between text-[11px] text-slate-400">
+                      <span>{c.paymentDays > 0 ? `Plazo: ${c.paymentDays} Días` : 'Entrega sin factura'}</span>
+                      <button
+                        onClick={() => {
+                          setStatusErrorMsg('');
+                          setStatusModalColab(c);
+                        }}
+                        className="px-3.5 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-200 transition flex items-center gap-1"
+                      >
+                        ⚙️ Avanzar Estado
+                      </button>
+                    </div>
+                  </div>
                 );
               })}
             </div>
           </div>
+        )}
 
-          <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl">
-            <h3 className="font-extrabold text-slate-800 text-base">Día {selectedDay} de Octubre</h3>
-            <div className="space-y-2.5">
-              {dayEvents.map((evt) => (
-                <div key={evt.id} className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-1">
-                  {getCategoryBadge(evt.category)}
-                  <h4 className="font-bold text-slate-800 text-xs">{evt.title}</h4>
-                  <p className="text-[10px] text-slate-400">🕒 {evt.time}</p>
+        {/* PESTAÑA AGENDA CON GOOGLE CALENDAR */}
+        {activeTab === 'calendar' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">Agenda & Google Calendar</h2>
+                <p className="text-xs text-slate-500">Gestión unificada de eventos, tareas y citas sincronizadas en tiempo real.</p>
+              </div>
+
+              <div className="flex items-center space-x-3 relative">
+                <button
+                  onClick={handleGoogleAuthConnect}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border shadow-sm ${
+                    isGoogleConnected
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100'
+                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                  }`}
+                  title={isGoogleConnected ? "Google Calendar Conectado (Clic para desconectar)" : "Iniciar sesión con Google para sincronizar tu agenda"}
+                >
+                  <GoogleIcon />
+                  <span>{isGoogleConnected ? '✓ Google Conectado' : 'Conectar Google'}</span>
+                </button>
+
+                {/* BOTÓN ESTILO GOOGLE + CREAR */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowCreateDropdown(!showCreateDropdown)}
+                    className="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-purple-200 transition flex items-center gap-2"
+                  >
+                    <span className="text-base font-black">+</span>
+                    <span>Crear</span>
+                    <span className="text-[10px]">▼</span>
+                  </button>
+
+                  {showCreateDropdown && (
+                    <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-2xl border border-purple-100 py-2 z-50 animate-in fade-in zoom-in duration-150">
+                      <button
+                        onClick={() => { setCreateType('evento'); setShowCreateDropdown(false); }}
+                        className="w-full text-left px-4 py-2.5 hover:bg-purple-50 text-xs font-bold text-slate-700 flex items-center gap-2.5 transition"
+                      >
+                        <span className="text-base">📅</span>
+                        <div>
+                          <div>Evento</div>
+                          <p className="text-[10px] text-slate-400 font-normal">Rodajes, reuniones, pautas</p>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => { setCreateType('tarea'); setShowCreateDropdown(false); }}
+                        className="w-full text-left px-4 py-2.5 hover:bg-purple-50 text-xs font-bold text-slate-700 flex items-center gap-2.5 transition border-t border-slate-100"
+                      >
+                        <span className="text-base">✅</span>
+                        <div>
+                          <div>Tarea</div>
+                          <p className="text-[10px] text-slate-400 font-normal">Pendientes personales</p>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => { setCreateType('citas'); setShowCreateDropdown(false); }}
+                        className="w-full text-left px-4 py-2.5 hover:bg-purple-50 text-xs font-bold text-slate-700 flex items-center gap-2.5 transition border-t border-slate-100"
+                      >
+                        <span className="text-base">📆</span>
+                        <div>
+                          <div>Agenda de Citas</div>
+                          <p className="text-[10px] text-slate-400 font-normal">Bloques para marcas</p>
+                        </div>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Filtros de Categorías */}
+            <div className="flex items-center space-x-2 bg-white/80 p-1.5 rounded-2xl border border-white/60 shadow-sm overflow-x-auto">
+              {[
+                { key: 'todos', label: 'Todos los Eventos' },
+                { key: 'grabacion', label: '🎥 Grabaciones' },
+                { key: 'entrega', label: '📤 Entregas / Borradores' },
+                { key: 'reunion', label: '👥 Reuniones' },
+                { key: 'pago', label: '💵 Pagos & Facturas' },
+                { key: 'google', label: '🌐 Google Calendar' }
+              ].map((f) => (
+                <button
+                  key={f.key}
+                  onClick={() => setCalendarFilter(f.key as any)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                    calendarFilter === f.key
+                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Grid Octubre 2026 */}
+              <div className="lg:col-span-2 bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl shadow-purple-100/30">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <h3 className="font-extrabold text-slate-800 text-base">October 2026</h3>
+                  <div className="text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-xl border border-purple-100">
+                    Hoy: 29 de Octubre
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-7 text-center text-[11px] font-bold text-slate-400 py-1">
+                  <span>Dom</span><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span>
+                </div>
+
+                <div className="grid grid-cols-7 gap-1.5">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={`empty-${i}`} className="h-12 rounded-2xl bg-slate-50/30 opacity-20"></div>
+                  ))}
+
+                  {[...Array(31)].map((_, i) => {
+                    const dayNum = i + 1;
+                    const dateStr = `2026-10-${dayNum < 10 ? '0' + dayNum : dayNum}`;
+                    const dayEvts = calendarEvents.filter(e => e.date === dateStr);
+                    const isSelected = selectedDay === dayNum;
+                    const isToday = dayNum === 29;
+
+                    return (
+                      <button
+                        key={dayNum}
+                        onClick={() => setSelectedDay(dayNum)}
+                        className={`h-12 rounded-2xl flex flex-col items-center justify-between p-1.5 text-xs font-bold transition relative border ${
+                          isSelected
+                            ? 'bg-gradient-to-tr from-purple-500 to-pink-500 text-white border-transparent shadow-md shadow-purple-200 ring-2 ring-purple-300'
+                            : isToday
+                            ? 'bg-purple-50 border-purple-300 text-purple-700'
+                            : 'bg-white/60 border-slate-100 text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span>{dayNum}</span>
+                        {dayEvts.length > 0 && (
+                          <div className="flex items-center gap-0.5">
+                            {dayEvts.some(e => e.source === 'google') && <span className="w-1.5 h-1.5 rounded-full bg-sky-400"></span>}
+                            {dayEvts.some(e => e.source === 'creator') && <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-pink-500'}`}></span>}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Panel Lateral */}
+              <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl shadow-purple-100/30 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-extrabold text-slate-800 text-base">Día {selectedDay} de Octubre</h3>
+                      <p className="text-[11px] text-slate-400 font-medium">{dayEvents.length} elementos programados</p>
+                    </div>
+                    <span className="text-xl">📅</span>
+                  </div>
+
+                  <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+                    {dayEvents.length === 0 ? (
+                      <div className="p-8 text-center space-y-2">
+                        <span className="text-3xl block">☕</span>
+                        <p className="text-xs text-slate-400 font-medium">No hay eventos para este día.</p>
+                      </div>
+                    ) : (
+                      dayEvents.map((evt) => (
+                        <div key={evt.id} className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-2 relative hover:border-purple-200 transition">
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-0.5">
+                              {getCategoryBadge(evt.category)}
+                              <h4 className="font-bold text-slate-800 text-xs pt-1">{evt.title}</h4>
+                            </div>
+                            {evt.source !== 'google' && (
+                              <button
+                                onClick={() => handleDeleteEvent(evt.id)}
+                                className="text-slate-300 hover:text-rose-500 text-xs p-1"
+                                title="Eliminar evento"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold pt-1 border-t border-slate-100">
+                            <span>🏷️ Marca: <strong className="text-purple-600">{evt.brand}</strong></span>
+                            <span>🕒 {evt.time}</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setCreateType('evento')}
+                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition"
+                >
+                  + Agregar Evento
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAREAS */}
+        {activeTab === 'tasks' && (
+          <div className="bg-white/80 p-6 rounded-2xl space-y-3 shadow-xl">
+            <h2 className="text-lg font-bold text-slate-800">Lista de Tareas Completa</h2>
+            <div className="space-y-2">
+              {tasks.map((t) => (
+                <div key={t.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl text-xs">
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      checked={t.status === 'completada'}
+                      disabled={t.status === 'completada'}
+                      onChange={() => handleTaskCheckboxClick(t)}
+                      className="rounded border-slate-300 text-purple-600"
+                    />
+                    <span className={t.status === 'completada' ? 'line-through text-slate-400' : 'text-slate-800 font-medium'}>
+                      {t.title}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
-            <button
-              onClick={() => setCreateType('evento')}
-              className="w-full py-2.5 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl"
-            >
-              + Agregar Evento
-            </button>
           </div>
-        </div>
+        )}
+
+        {/* INGRESOS */}
+        {activeTab === 'income' && (
+          <div className="bg-white/80 p-6 rounded-2xl space-y-3 shadow-xl">
+            <h2 className="text-lg font-bold text-slate-800">Control de Ingresos</h2>
+            <div className="text-2xl font-black text-emerald-600">
+              $ {totalPaidUsdConverted.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+          </div>
+        )}
+
+        {/* MEDIAKIT */}
+        {activeTab === 'mediakit' && (
+          <div className="bg-white/80 p-6 rounded-2xl space-y-3 shadow-xl">
+            <h2 className="text-lg font-bold text-slate-800">Media Kit Profesional</h2>
+            <p className="text-xs text-slate-500">Perfil público de {displayName}</p>
+          </div>
+        )}
+
       </main>
 
-      {/* MODAL CREAR EVENTO */}
-      {createType === 'evento' && (
+      {/* MODAL UNIFICADO (+ CREAR) */}
+      {createType && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl border border-purple-100">
-            <h2 className="text-base font-bold text-slate-800">📅 Crear Evento (Sincroniza con Google)</h2>
-            <form onSubmit={handleCreateSubmit} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Título del Evento *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ej: Entrega de borrador..."
-                  value={createTitle}
-                  onChange={(e) => setCreateTitle(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                />
-              </div>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                <span>{createType === 'evento' ? '📅 Nuevo Evento' : createType === 'tarea' ? '✅ Nueva Tarea' : '📆 Agenda de Citas'}</span>
+              </h2>
+              <button onClick={() => setCreateType(null)} className="text-slate-400 hover:text-slate-600 text-xs font-bold">✕</button>
+            </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Marca / Proyecto</label>
-                <input
-                  type="text"
-                  placeholder="Ej: Adidas"
-                  value={createBrand}
-                  onChange={(e) => setCreateBrand(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Fecha</label>
-                  <input
-                    type="date"
-                    value={createDate}
-                    onChange={(e) => setCreateDate(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                  />
+            {createType === 'citas' ? (
+              <div className="p-4 bg-purple-50 rounded-2xl space-y-3 text-xs text-purple-900">
+                <p className="font-semibold leading-relaxed">
+                  Configura tus bloques de disponibilidad para que marcas e agencias puedan reservar llamadas directas sincronizadas con tu Google Calendar.
+                </p>
+                <div className="p-3 bg-white rounded-xl border border-purple-200">
+                  <span className="block font-bold text-purple-700 mb-1">🔗 Tu enlace público de reuniones:</span>
+                  <code className="text-[11px] text-slate-600 font-mono bg-slate-100 p-1 rounded block truncate">
+                    https://creatordesk.io/{displayName.toLowerCase().replace(/\s+/g, '')}/book
+                  </code>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Hora</label>
-                  <input
-                    type="time"
-                    value={createTime}
-                    onChange={(e) => setCreateTime(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setCreateType(null)}
-                  className="px-4 py-2.5 bg-slate-100 text-slate-600 font-bold text-xs rounded-xl"
+                  className="w-full py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-xl"
                 >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-200"
-                >
-                  Guardar y Sincronizar en Google
+                  Guardar Configuración de Citas
                 </button>
               </div>
-            </form>
+            ) : (
+              <form onSubmit={handleCreateSubmit} className="space-y-3.5">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Título *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder={createType === 'evento' ? "Ej: Rodaje de Reel, Reunión..." : "Ej: Enviar factura a marca..."}
+                    value={createTitle}
+                    onChange={(e) => setCreateTitle(e.target.value)}
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Marca / Proyecto</label>
+                  <input
+                    type="text"
+                    placeholder="Ej: Adidas, Aurelia, Personal..."
+                    value={createBrand}
+                    onChange={(e) => setCreateBrand(e.target.value)}
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-400"
+                  />
+                </div>
+
+                {createType === 'evento' && (
+                  <>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Fecha</label>
+                        <input
+                          type="date"
+                          value={createDate}
+                          onChange={(e) => setCreateDate(e.target.value)}
+                          className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Hora</label>
+                        <input
+                          type="time"
+                          value={createTime}
+                          onChange={(e) => setCreateTime(e.target.value)}
+                          className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Categoría de Evento</label>
+                      <select
+                        value={createCategory}
+                        onChange={(e) => setCreateCategory(e.target.value as any)}
+                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none"
+                      >
+                        <option value="grabacion">🎥 Grabación / Rodaje</option>
+                        <option value="entrega">📤 Entrega de Borrador / Publicación</option>
+                        <option value="reunion">👥 Reunión con Cliente</option>
+                        <option value="pago">💵 Recordatorio de Pago / Factura</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setCreateType(null)}
+                    className="px-4 py-2.5 bg-slate-100 text-slate-600 font-bold text-xs rounded-xl"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-200"
+                  >
+                    Guardar y Sincronizar en Google
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
+
+      {/* Menú Flotante Inferior */}
+      <nav className="fixed bottom-5 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-2xl border border-white/80 px-3 py-2 rounded-2xl shadow-2xl shadow-purple-200/60 flex items-center space-x-1 sm:space-x-2 z-30">
+        <button
+          onClick={() => setActiveTab('home')}
+          className={`flex flex-col items-center px-3 py-1.5 rounded-xl transition text-[11px] font-bold ${
+            activeTab === 'home' ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md shadow-purple-200' : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <span className="text-sm">🏠</span>
+          <span>Inicio</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('colabs')}
+          className={`flex flex-col items-center px-3 py-1.5 rounded-xl transition text-[11px] font-bold ${
+            activeTab === 'colabs' ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md shadow-purple-200' : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <span className="text-sm">🤝</span>
+          <span>Colabs</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('calendar')}
+          className={`flex flex-col items-center px-3 py-1.5 rounded-xl transition text-[11px] font-bold ${
+            activeTab === 'calendar' ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md shadow-purple-200' : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <span className="text-sm">📅</span>
+          <span>Agenda</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('tasks')}
+          className={`flex flex-col items-center px-3 py-1.5 rounded-xl transition text-[11px] font-bold ${
+            activeTab === 'tasks' ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md shadow-purple-200' : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <span className="text-sm">📝</span>
+          <span>Tareas</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('income')}
+          className={`flex flex-col items-center px-3 py-1.5 rounded-xl transition text-[11px] font-bold ${
+            activeTab === 'income' ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md shadow-purple-200' : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <span className="text-sm">💰</span>
+          <span>Ingresos</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('mediakit')}
+          className={`flex flex-col items-center px-3 py-1.5 rounded-xl transition text-[11px] font-bold ${
+            activeTab === 'mediakit' ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md shadow-purple-200' : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <span className="text-sm">📁</span>
+          <span>MediaKit</span>
+        </button>
+      </nav>
     </div>
   );
 }
