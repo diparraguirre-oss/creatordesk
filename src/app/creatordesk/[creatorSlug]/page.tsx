@@ -41,6 +41,23 @@ const TrashIcon = () => (
   </svg>
 );
 
+// Flujo ordenado secuencial estricto de las 13 fases
+export const STATUS_SEQUENCE = [
+  'Campaña Recibida',
+  'Campaña Aceptada',
+  'Brief Recibido',
+  'Guión Enviado',
+  'Guión Aprobado',
+  'En Grabación',
+  'En Edición',
+  'Video Entregado',
+  'Video Aprobado',
+  'Video Publicado',
+  'Factura Enviada',
+  'Factura por Cobrar',
+  'Factura Cobrada'
+];
+
 export const CAMPAIGN_STAGES = [
   {
     stage: 'Negociación',
@@ -75,7 +92,13 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   // Filtros de Colabs
   const [colabFilter, setColabFilter] = useState<string>('todas');
   const [showNewColabModal, setShowNewColabModal] = useState(false);
-  const [selectedColabForDetail, setSelectedColabForDetail] = useState<any>(null);
+
+  // Modales independientes para Información vs Gestión de Estado
+  const [infoModalColab, setInfoModalColab] = useState<any>(null);
+  const [statusModalColab, setStatusModalColab] = useState<any>(null);
+
+  // Alerta de validación de estado
+  const [statusErrorMsg, setStatusErrorMsg] = useState('');
 
   // Formulario Nueva Colaboración
   const [brandName, setBrandName] = useState('');
@@ -86,7 +109,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [paymentDays, setPaymentDays] = useState('30');
   const [deliverables, setDeliverables] = useState({ reels: 0, tiktoks: 0, stories: 0, facebook: 0, youtube: 0, evento: 0 });
 
-  // Campos UGC ampliados
+  // Campos UGC
   const [isUgc, setIsUgc] = useState(false);
   const [usageRightsDays, setUsageRightsDays] = useState('30 días');
   const [includesRawFootage, setIncludesRawFootage] = useState(false);
@@ -94,7 +117,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [categoryExclusivity, setCategoryExclusivity] = useState('Sin Exclusividad');
   const [deliveryFormat, setDeliveryFormat] = useState('Vertical 9:16 (Móvil)');
 
-  // Error de entregables vacíos
   const [deliverableError, setDeliverableError] = useState('');
 
   // Modal confirmación tareas y borrado
@@ -157,8 +179,8 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     },
     {
       id: '3',
-      brand: 'Iphone',
-      contactName: 'Juan',
+      brand: 'Yolu',
+      contactName: 'Yordy Picon',
       dealType: 'Pago',
       currency: 'PEN',
       amount: 500,
@@ -173,7 +195,8 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         deliveryFormat: 'Vertical 9:16 (Móvil)'
       },
       deliverables: [
-        { type: 'instagram', label: 'Contenido personalizado' }
+        { type: 'instagram', label: '1 Reels' },
+        { type: 'tiktok', label: '1 TikToks' }
       ],
       statusHistory: {
         'Campaña Recibida': '28/10/2026'
@@ -240,7 +263,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const handleCreateColab = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validación estricta: Mínimo 1 entregable
     if (totalDeliverablesCount === 0) {
       setDeliverableError('Debe seleccionar al menos 1 contenido a entregar.');
       return;
@@ -293,7 +315,57 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     return 0;
   };
 
-  const handleStatusChange = (colabId: string, newStatus: string) => {
+  // Lógica Estricta de Avance de Estado
+  const handleStrictStatusChange = (colab: any, targetStatus: string) => {
+    setStatusErrorMsg('');
+
+    const currentStatus = colab.status;
+
+    // 1. Si está cancelada, no se puede modificar
+    if (currentStatus === 'Campaña Cancelada' && targetStatus !== 'Campaña Cancelada') {
+      setStatusErrorMsg('La campaña está cancelada. No es posible avanzar a otras etapas.');
+      return;
+    }
+
+    // 2. Opción especial: Marcar u Omitir Cancelación
+    if (targetStatus === 'Campaña Cancelada') {
+      applyStatusUpdate(colab.id, targetStatus);
+      return;
+    }
+
+    // 3. Casos de Guión Observado
+    if (currentStatus === 'Guión Observado' && targetStatus !== 'Guión Aprobado' && targetStatus !== 'Guión Enviado') {
+      setStatusErrorMsg('El guión está observado. Debes corregirlo y aprobarlo ("Guión Aprobado") antes de pasar a producción.');
+      return;
+    }
+
+    // 4. Casos de Video Observado
+    if (currentStatus === 'Video Observado' && targetStatus !== 'Video Aprobado' && targetStatus !== 'En Edición') {
+      setStatusErrorMsg('El video está observado. Debes aprobarlo ("Video Aprobado") antes de poder publicarlo o facturar.');
+      return;
+    }
+
+    // 5. Permitir estados de observación específicos
+    if (targetStatus === 'Guión Observado' || targetStatus === 'Video Observado') {
+      applyStatusUpdate(colab.id, targetStatus);
+      return;
+    }
+
+    // 6. Validar secuencia paso a paso
+    const currentIdx = STATUS_SEQUENCE.indexOf(currentStatus);
+    const targetIdx = STATUS_SEQUENCE.indexOf(targetStatus);
+
+    if (currentIdx !== -1 && targetIdx !== -1) {
+      if (targetIdx > currentIdx + 1) {
+        setStatusErrorMsg(`No puedes saltar de "${currentStatus}" a "${targetStatus}". El flujo debe ser paso a paso: ${STATUS_SEQUENCE[currentIdx + 1]}.`);
+        return;
+      }
+    }
+
+    applyStatusUpdate(colab.id, targetStatus);
+  };
+
+  const applyStatusUpdate = (colabId: string, newStatus: string) => {
     const todayStr = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
     setColabs(colabs.map(c => {
@@ -304,9 +376,9 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       return c;
     }));
 
-    if (selectedColabForDetail && selectedColabForDetail.id === colabId) {
-      const updatedHistory = { ...selectedColabForDetail.statusHistory, [newStatus]: todayStr };
-      setSelectedColabForDetail({ ...selectedColabForDetail, status: newStatus, statusHistory: updatedHistory });
+    if (statusModalColab && statusModalColab.id === colabId) {
+      const updatedHistory = { ...statusModalColab.statusHistory, [newStatus]: todayStr };
+      setStatusModalColab({ ...statusModalColab, status: newStatus, statusHistory: updatedHistory });
     }
   };
 
@@ -467,7 +539,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           </div>
         )}
 
-        {/* PESTAÑA COLABS */}
+        {/* PESTAÑA COLABS REDISEÑADA */}
         {activeTab === 'colabs' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -509,7 +581,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               ))}
             </div>
 
-            {/* Tarjetas de Colaboración (Clic para abrir detalle) */}
+            {/* Tarjetas Rediseñadas */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               {filteredColabs.map((c) => {
                 const currentStageIdx = getStageIndex(c.status);
@@ -519,13 +591,13 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 return (
                   <div
                     key={c.id}
-                    onClick={() => setSelectedColabForDetail(c)}
-                    className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl shadow-purple-100/30 hover:border-purple-300 transition cursor-pointer relative group"
+                    className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl shadow-purple-100/30 hover:border-purple-300 transition relative"
                   >
+                    {/* Encabezado Principal */}
                     <div className="flex items-start justify-between border-b border-slate-100 pb-3">
                       <div className="space-y-1">
                         <div className="flex items-center space-x-2">
-                          <h3 className="font-black text-slate-800 text-base">{c.brand}</h3>
+                          <h3 className="font-black text-slate-800 text-lg">{c.brand}</h3>
                           <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-extrabold border ${
                             c.dealType === 'Canje'
                               ? 'bg-pink-50 border-pink-200 text-pink-600'
@@ -539,61 +611,75 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] font-semibold text-purple-600 flex items-center gap-1">
+                        <p className="text-xs font-semibold text-purple-600 flex items-center gap-1">
                           👤 <span>{c.contactName || 'Sin contacto asignado'}</span>
                         </p>
                       </div>
 
-                      <div className="text-right space-y-1">
+                      {/* Caja Destacada de Precio HERO */}
+                      <div className="flex items-center space-x-2">
                         {c.dealType === 'Pago' ? (
-                          <div className="text-base font-black text-emerald-600">
+                          <div className="px-3.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-700 font-black text-base shadow-2xs">
                             {c.currency === 'USD' ? `$ ${c.amount}` : `S/ ${c.amount}`}
                           </div>
                         ) : (
-                          <div className="text-xs font-bold text-pink-500">Canje Directo</div>
+                          <div className="px-3 py-1 bg-pink-50 border border-pink-200 rounded-xl text-xs font-black text-pink-600">
+                            Canje Directo
+                          </div>
                         )}
-                        
-                        <div className="flex items-center justify-end space-x-2">
-                          <span className="inline-block px-2.5 py-1 bg-purple-100/80 border border-purple-200 text-purple-700 rounded-xl text-[11px] font-bold">
-                            {c.status}
+
+                        {isNegociacion && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setColabToDelete(c);
+                            }}
+                            className="p-1.5 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 transition"
+                            title="Borrar colaboración (Solo en Negociación)"
+                          >
+                            <TrashIcon />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Fila de Entregables e Ícono de Información */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex flex-wrap gap-1.5">
+                        {c.deliverables?.map((d: any, idx: number) => (
+                          <span key={idx} className="px-2.5 py-1 bg-slate-50 border border-slate-200 text-slate-700 font-semibold text-[11px] rounded-lg flex items-center gap-1.5 shadow-2xs">
+                            {renderSocialIcon(d.type)}
+                            <span>{d.label}</span>
                           </span>
-
-                          {/* Tachito de Borrar SOLO visible en estado Negociación */}
-                          {isNegociacion && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setColabToDelete(c);
-                              }}
-                              className="p-1 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition"
-                              title="Borrar colaboración (Solo en Negociación)"
-                            >
-                              <TrashIcon />
-                            </button>
-                          )}
-                        </div>
+                        ))}
                       </div>
+
+                      {/* Botón Ojito para Ver Información */}
+                      <button
+                        onClick={() => setInfoModalColab(c)}
+                        className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs rounded-xl border border-purple-200 transition whitespace-nowrap flex items-center gap-1"
+                      >
+                        👁️ Info
+                      </button>
                     </div>
 
-                    {/* Entregables */}
-                    <div className="flex flex-wrap gap-1.5">
-                      {c.deliverables?.map((d: any, idx: number) => (
-                        <span key={idx} className="px-2.5 py-1 bg-slate-50 border border-slate-200 text-slate-700 font-semibold text-[11px] rounded-lg flex items-center gap-1.5 shadow-2xs">
-                          {renderSocialIcon(d.type)}
-                          <span>{d.label}</span>
+                    {/* Timeline de Estado Interactiva */}
+                    <div
+                      onClick={() => {
+                        setStatusErrorMsg('');
+                        setStatusModalColab(c);
+                      }}
+                      className="space-y-2 pt-2 cursor-pointer p-3 rounded-2xl bg-slate-50/60 border border-slate-100 hover:border-purple-200 transition"
+                    >
+                      <div className="flex justify-between items-center text-[10px] font-semibold">
+                        <span className="text-purple-700 font-bold flex items-center gap-1">
+                          📌 Estado Actual: <span className="underline">{c.status}</span>
                         </span>
-                      ))}
-                    </div>
-
-                    {/* Timeline */}
-                    <div className="space-y-2 pt-1">
-                      <div className="flex justify-between items-center text-[10px] text-slate-400 font-medium px-1">
-                        <span>Progreso de campaña</span>
-                        <span>Último cambio: <strong className="text-purple-600">{lastDate}</strong></span>
+                        <span className="text-slate-400">Último cambio: <strong className="text-slate-600">{lastDate}</strong></span>
                       </div>
 
-                      <div className="relative flex items-center justify-between">
+                      <div className="relative flex items-center justify-between pt-1">
                         <div className="absolute top-1/2 left-2 right-2 -translate-y-1/2 h-0.5 bg-slate-200 -z-0"></div>
                         <div
                           className="absolute top-1/2 left-2 -translate-y-1/2 h-0.5 bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500 -z-0"
@@ -624,13 +710,17 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                       </div>
                     </div>
 
-                    <div className="pt-2 flex items-center justify-between border-t border-slate-100">
-                      <span className="text-[11px] text-slate-400">
-                        {c.paymentDays > 0 ? `Plazo: ${c.paymentDays} Días` : 'Entrega sin factura'}
-                      </span>
-                      <span className="px-3 py-1 bg-slate-100 text-purple-700 font-bold text-xs rounded-xl flex items-center gap-1.5 group-hover:bg-purple-100 transition">
-                        🔍 Ver Detalle Completo
-                      </span>
+                    <div className="pt-1 flex items-center justify-between text-[11px] text-slate-400">
+                      <span>{c.paymentDays > 0 ? `Plazo: ${c.paymentDays} Días` : 'Entrega sin factura'}</span>
+                      <button
+                        onClick={() => {
+                          setStatusErrorMsg('');
+                          setStatusModalColab(c);
+                        }}
+                        className="font-bold text-purple-600 hover:underline"
+                      >
+                        ⚙️ Avanzar Estado
+                      </button>
                     </div>
                   </div>
                 );
@@ -687,51 +777,51 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
       </main>
 
-      {/* Modal / Drawer para Detalle Completo de la Colaboración */}
-      {selectedColabForDetail && (
+      {/* POP-UP 1: MODAL DE INFORMACIÓN COMPLETA (Ojito 👁️) */}
+      {infoModalColab && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white p-6 rounded-3xl max-w-lg w-full space-y-5 shadow-2xl border border-purple-100 my-8">
+          <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-5 shadow-2xl border border-purple-100 my-8">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <div className="flex items-center space-x-2">
-                  <h2 className="text-lg font-black text-slate-800">{selectedColabForDetail.brand}</h2>
+                  <h2 className="text-lg font-black text-slate-800">{infoModalColab.brand}</h2>
                   <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-extrabold border ${
-                    selectedColabForDetail.dealType === 'Canje'
+                    infoModalColab.dealType === 'Canje'
                       ? 'bg-pink-50 border-pink-200 text-pink-600'
                       : 'bg-purple-50 border-purple-200 text-purple-600'
                   }`}>
-                    {selectedColabForDetail.dealType}
+                    {infoModalColab.dealType}
                   </span>
-                  {selectedColabForDetail.isUgc && (
+                  {infoModalColab.isUgc && (
                     <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-indigo-100 border border-indigo-200 text-indigo-700">
                       ⚡ UGC
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-500">👤 Contacto: {selectedColabForDetail.contactName}</p>
+                <p className="text-xs text-slate-500">👤 Contacto: {infoModalColab.contactName}</p>
               </div>
               <button
-                onClick={() => setSelectedColabForDetail(null)}
+                onClick={() => setInfoModalColab(null)}
                 className="text-slate-400 hover:text-slate-600 text-xs font-bold"
               >
                 ✕
               </button>
             </div>
 
-            {/* Detalles de la Campaña */}
+            {/* Datos Económicos */}
             <div className="grid grid-cols-2 gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-xs">
               <div>
                 <span className="text-slate-400 font-semibold block text-[10px]">Monto del Acuerdo</span>
                 <span className="font-bold text-emerald-600 text-sm">
-                  {selectedColabForDetail.dealType === 'Pago' 
-                    ? `${selectedColabForDetail.currency === 'USD' ? '$' : 'S/'} ${selectedColabForDetail.amount}` 
+                  {infoModalColab.dealType === 'Pago' 
+                    ? `${infoModalColab.currency === 'USD' ? '$' : 'S/'} ${infoModalColab.amount}` 
                     : 'Canje Directo'}
                 </span>
               </div>
               <div>
                 <span className="text-slate-400 font-semibold block text-[10px]">Plazo de Pago</span>
                 <span className="font-bold text-slate-700">
-                  {selectedColabForDetail.paymentDays > 0 ? `${selectedColabForDetail.paymentDays} Días` : 'Inmediato / Sin Factura'}
+                  {infoModalColab.paymentDays > 0 ? `${infoModalColab.paymentDays} Días` : 'Inmediato / Sin Factura'}
                 </span>
               </div>
             </div>
@@ -740,7 +830,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700">Entregables Acordados:</label>
               <div className="flex flex-wrap gap-1.5">
-                {selectedColabForDetail.deliverables?.map((d: any, idx: number) => (
+                {infoModalColab.deliverables?.map((d: any, idx: number) => (
                   <span key={idx} className="px-3 py-1 bg-purple-50 border border-purple-200 text-purple-700 font-bold text-xs rounded-xl flex items-center gap-1.5">
                     {renderSocialIcon(d.type)}
                     <span>{d.label}</span>
@@ -750,25 +840,57 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
             </div>
 
             {/* Detalle UGC Si Aplica */}
-            {selectedColabForDetail.isUgc && selectedColabForDetail.ugcDetails && (
+            {infoModalColab.isUgc && infoModalColab.ugcDetails && (
               <div className="p-3.5 bg-indigo-50/60 border border-indigo-100 rounded-2xl space-y-2 text-xs">
                 <span className="font-bold text-indigo-900 block flex items-center gap-1 text-[11px]">
                   ⚡ Términos de Licencia UGC:
                 </span>
                 <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-700">
-                  <div>• Licencia: <strong>{selectedColabForDetail.ugcDetails.usageRightsDays}</strong></div>
-                  <div>• Formato: <strong>{selectedColabForDetail.ugcDetails.deliveryFormat}</strong></div>
-                  <div>• Raw Footage: <strong>{selectedColabForDetail.ugcDetails.includesRawFootage ? 'Sí Incluye' : 'No Incluye'}</strong></div>
-                  <div>• Pauta/Ads: <strong>{selectedColabForDetail.ugcDetails.allowAdsUsage ? 'Permitido' : 'No Permitido'}</strong></div>
-                  <div className="col-span-2">• Exclusividad: <strong>{selectedColabForDetail.ugcDetails.categoryExclusivity}</strong></div>
+                  <div>• Licencia: <strong>{infoModalColab.ugcDetails.usageRightsDays}</strong></div>
+                  <div>• Formato: <strong>{infoModalColab.ugcDetails.deliveryFormat}</strong></div>
+                  <div>• Raw Footage: <strong>{infoModalColab.ugcDetails.includesRawFootage ? 'Sí Incluye' : 'No Incluye'}</strong></div>
+                  <div>• Pauta/Ads: <strong>{infoModalColab.ugcDetails.allowAdsUsage ? 'Permitido' : 'No Permitido'}</strong></div>
+                  <div className="col-span-2">• Exclusividad: <strong>{infoModalColab.ugcDetails.categoryExclusivity}</strong></div>
                 </div>
               </div>
             )}
 
-            {/* Selector de Cambiar Estado con Fechas */}
-            <div className="space-y-2.5">
-              <label className="block text-xs font-bold text-slate-700">Cambiar Estado Actual:</label>
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+            <button
+              onClick={() => setInfoModalColab(null)}
+              className="w-full py-2.5 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200 transition"
+            >
+              Cerrar Información
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* POP-UP 2: MODAL DE GESTIÓN DE ESTADO CON LÓGICA ESTRICTA */}
+      {statusModalColab && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl border border-purple-100 my-8">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h2 className="text-base font-bold text-slate-800">{statusModalColab.brand}</h2>
+                <p className="text-xs text-purple-600 font-semibold">Estado Actual: {statusModalColab.status}</p>
+              </div>
+              <button
+                onClick={() => setStatusModalColab(null)}
+                className="text-slate-400 hover:text-slate-600 text-xs font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {statusErrorMsg && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-2xl leading-relaxed">
+                ⚠️ {statusErrorMsg}
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <label className="block text-xs font-bold text-slate-700">Avanzar Estado Paso a Paso:</label>
+              <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
                 {CAMPAIGN_STAGES.map((stg) => (
                   <div key={stg.stage} className="space-y-1">
                     <span className="text-[11px] font-bold text-purple-600 flex items-center gap-1">
@@ -777,14 +899,14 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                     </span>
                     <div className="grid grid-cols-1 gap-1 pl-2">
                       {stg.statuses.map((st) => {
-                        const dateLogged = selectedColabForDetail.statusHistory?.[st];
-                        const isSelected = selectedColabForDetail.status === st;
+                        const dateLogged = statusModalColab.statusHistory?.[st];
+                        const isSelected = statusModalColab.status === st;
 
                         return (
                           <button
                             key={st}
                             type="button"
-                            onClick={() => handleStatusChange(selectedColabForDetail.id, st)}
+                            onClick={() => handleStrictStatusChange(statusModalColab, st)}
                             className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition border ${
                               isSelected
                                 ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold border-transparent shadow-sm'
@@ -807,10 +929,10 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
             </div>
 
             <button
-              onClick={() => setSelectedColabForDetail(null)}
+              onClick={() => setStatusModalColab(null)}
               className="w-full py-2.5 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200 transition"
             >
-              Cerrar Detalle
+              Guardar y Cerrar
             </button>
           </div>
         </div>
@@ -1003,7 +1125,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 </div>
               </div>
 
-              {/* SWITCH Y OPCIONES UGC AMPLIADAS */}
+              {/* SWITCH Y OPCIONES UGC */}
               <div className="p-3 bg-purple-50/60 rounded-2xl border border-purple-100 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
@@ -1120,7 +1242,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         </div>
       )}
 
-      {/* Pop-up de Confirmación de Borrado de Campaña */}
+      {/* Pop-up de Confirmación de Borrado */}
       {colabToDelete && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-3xl max-w-sm w-full text-center space-y-4 shadow-2xl border border-rose-100">
