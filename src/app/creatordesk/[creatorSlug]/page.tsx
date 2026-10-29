@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
 
-// Componentes SVG vectoriales con los logos reales
+// Componentes SVG vectoriales
 const InstagramIcon = () => (
   <svg className="w-4 h-4 text-pink-600 inline-block" fill="currentColor" viewBox="0 0 24 24">
     <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
@@ -71,7 +71,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [showNewColabModal, setShowNewColabModal] = useState(false);
   const [selectedColabForDetail, setSelectedColabForDetail] = useState<any>(null);
 
-  // Formulario Nueva Colaboración con Logos Reales
+  // Formulario Nueva Colaboración
   const [brandName, setBrandName] = useState('');
   const [contactName, setContactName] = useState('');
   const [dealType, setDealType] = useState<'Pago' | 'Canje'>('Pago');
@@ -79,6 +79,12 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [amount, setAmount] = useState('');
   const [paymentDays, setPaymentDays] = useState('30');
   const [deliverables, setDeliverables] = useState({ reels: 1, tiktoks: 0, stories: 2, facebook: 0, youtube: 0, evento: 0 });
+
+  // Campos específicos de UGC
+  const [isUgc, setIsUgc] = useState(false);
+  const [usageRightsDays, setUsageRightsDays] = useState('30 días');
+  const [includesRawFootage, setIncludesRawFootage] = useState(false);
+  const [allowAdsUsage, setAllowAdsUsage] = useState(true);
 
   // Modal confirmación tareas
   const [pendingTask, setPendingTask] = useState<any>(null);
@@ -100,6 +106,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       amount: 1500,
       paymentDays: 30,
       status: 'Guión Enviado',
+      isUgc: false,
       deliverables: [
         { type: 'instagram', label: '2 Reels' },
         { type: 'instagram', label: '3 Stories' },
@@ -119,8 +126,10 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       amount: 0,
       paymentDays: 0,
       status: 'En Grabación',
+      isUgc: true,
+      ugcDetails: { usageRightsDays: '60 días', includesRawFootage: true, allowAdsUsage: true },
       deliverables: [
-        { type: 'tiktok', label: '1 TikTok' },
+        { type: 'tiktok', label: '1 TikTok UGC' },
         { type: 'facebook', label: '1 Post' }
       ],
       statusHistory: {
@@ -137,6 +146,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       amount: 2200,
       paymentDays: 15,
       status: 'Factura Cobrada',
+      isUgc: false,
       deliverables: [
         { type: 'instagram', label: '1 Reel' },
         { type: 'youtube', label: '1 Video' }
@@ -219,6 +229,8 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       amount: dealType === 'Pago' ? Number(amount) || 0 : 0,
       paymentDays: Number(paymentDays),
       status: 'Campaña Recibida',
+      isUgc: isUgc,
+      ugcDetails: isUgc ? { usageRightsDays, includesRawFootage, allowAdsUsage } : null,
       deliverables: delivArray.length > 0 ? delivArray : [{ type: 'instagram', label: 'Contenido personalizado' }],
       statusHistory: {
         'Campaña Recibida': todayStr
@@ -230,6 +242,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     setBrandName('');
     setContactName('');
     setAmount('');
+    setIsUgc(false);
   };
 
   const getStageIndex = (status: string) => {
@@ -414,7 +427,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           </div>
         )}
 
-        {/* PESTAÑA COLABS CON LOGOS SVG REALES */}
+        {/* PESTAÑA COLABS */}
         {activeTab === 'colabs' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -475,6 +488,11 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                           }`}>
                             {c.dealType}
                           </span>
+                          {c.isUgc && (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-indigo-100 border border-indigo-200 text-indigo-700">
+                              ⚡ UGC
+                            </span>
+                          )}
                         </div>
                         <p className="text-[11px] font-semibold text-purple-600 flex items-center gap-1">
                           👤 <span>{c.contactName || 'Sin contacto asignado'}</span>
@@ -495,7 +513,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                       </div>
                     </div>
 
-                    {/* Entregables con Logos Vectoriales Reales */}
+                    {/* Entregables */}
                     <div className="flex flex-wrap gap-1.5">
                       {c.deliverables?.map((d: any, idx: number) => (
                         <span key={idx} className="px-2.5 py-1 bg-slate-50 border border-slate-200 text-slate-700 font-semibold text-[11px] rounded-lg flex items-center gap-1.5 shadow-2xs">
@@ -676,7 +694,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         </div>
       )}
 
-      {/* Modal Nueva Colaboración con Logos Vectoriales */}
+      {/* Modal Nueva Colaboración (z-50) */}
       {showNewColabModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl border border-purple-100 my-8">
@@ -781,7 +799,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 </div>
               )}
 
-              {/* Selección Visual de Entregables con Logos Reales */}
+              {/* Selección de Entregables */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">Contenidos a Entregar (Selección)</label>
                 <div className="grid grid-cols-2 gap-2 text-xs">
@@ -853,6 +871,74 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 </div>
               </div>
 
+              {/* SWITCH Y OPCIONES UGC */}
+              <div className="p-3 bg-purple-50/60 rounded-2xl border border-purple-100 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      ⚡ ¿Es contenido UGC?
+                    </span>
+                    <p className="text-[10px] text-slate-500">Contenido creado exclusivamente para uso de la marca.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsUgc(!isUgc)}
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      isUgc ? 'bg-purple-600' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        isUgc ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {isUgc && (
+                  <div className="pt-2 border-t border-purple-100 space-y-3 text-xs">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                        Derechos de Uso Comercial (Licencia):
+                      </label>
+                      <select
+                        value={usageRightsDays}
+                        onChange={(e) => setUsageRightsDays(e.target.value)}
+                        className="w-full px-3 py-1.5 bg-white border border-purple-200 rounded-xl text-xs text-slate-800 focus:outline-none"
+                      >
+                        <option value="30 días">30 Días de Uso en Pauta</option>
+                        <option value="60 días">60 Días de Uso en Pauta</option>
+                        <option value="90 días">90 Días de Uso en Pauta</option>
+                        <option value="1 año">1 Año de Licencia</option>
+                        <option value="Perpetuo / Indefinido">Perpetuo / Indefinido</option>
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="flex items-center space-x-2 p-2 bg-white border border-purple-200 rounded-xl cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={includesRawFootage}
+                          onChange={(e) => setIncludesRawFootage(e.target.checked)}
+                          className="rounded text-purple-600 focus:ring-purple-400"
+                        />
+                        <span className="text-[10px] font-semibold text-slate-700">Incluye Raw Footage (Clips sin editar)</span>
+                      </label>
+
+                      <label className="flex items-center space-x-2 p-2 bg-white border border-purple-200 rounded-xl cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={allowAdsUsage}
+                          onChange={(e) => setAllowAdsUsage(e.target.checked)}
+                          className="rounded text-purple-600 focus:ring-purple-400"
+                        />
+                        <span className="text-[10px] font-semibold text-slate-700">Uso para Pauta / Anuncios (Ads)</span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
@@ -904,8 +990,8 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         </div>
       )}
 
-      {/* Menú Flotante Inferior */}
-      <nav className="fixed bottom-5 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-2xl border border-white/80 px-3 py-2 rounded-2xl shadow-2xl shadow-purple-200/60 flex items-center space-x-1 sm:space-x-2 z-50">
+      {/* Menú Flotante Inferior (Ajustado a z-30 para quedar debajo del fondo opaco del modal) */}
+      <nav className="fixed bottom-5 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-2xl border border-white/80 px-3 py-2 rounded-2xl shadow-2xl shadow-purple-200/60 flex items-center space-x-1 sm:space-x-2 z-30">
         <button
           onClick={() => setActiveTab('home')}
           className={`flex flex-col items-center px-3 py-1.5 rounded-xl transition text-[11px] font-bold ${
