@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
 
+// Componentes SVG vectoriales
 const InstagramIcon = () => (
   <svg className="w-4 h-4 text-pink-600 inline-block" fill="currentColor" viewBox="0 0 24 24">
     <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
@@ -37,6 +38,15 @@ const EventIcon = () => (
 const TrashIcon = () => (
   <svg className="w-4 h-4 text-rose-500 hover:text-rose-700 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  </svg>
+);
+
+const GoogleIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24">
+    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
   </svg>
 );
 
@@ -85,7 +95,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [displayName, setDisplayName] = useState<string>('');
   const [isExpired, setIsExpired] = useState(false);
   const [daysRemaining, setDaysRemaining] = useState<number>(7);
-  const [activeTab, setActiveTab] = useState<'home' | 'colabs' | 'calendar' | 'tasks' | 'income' | 'mediakit'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'colabs' | 'calendar' | 'tasks' | 'income' | 'mediakit'>('calendar');
 
   const [colabFilter, setColabFilter] = useState<string>('todas');
   const [showNewColabModal, setShowNewColabModal] = useState(false);
@@ -115,6 +125,31 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [pendingTask, setPendingTask] = useState<any>(null);
   const [showTaskConfirmModal, setShowTaskConfirmModal] = useState(false);
   const [colabToDelete, setColabToDelete] = useState<any>(null);
+
+  // ESTADOS DE LA AGENDA Y GOOGLE CALENDAR
+  const [selectedDay, setSelectedDay] = useState<number>(28);
+  const [calendarFilter, setCalendarFilter] = useState<'todos' | 'grabacion' | 'entrega' | 'reunion' | 'pago' | 'google'>('todos');
+  const [showCreateDropdown, setShowCreateDropdown] = useState(false);
+  const [createType, setCreateType] = useState<'evento' | 'tarea' | 'citas' | null>(null);
+
+  // Estado Sincronización Google Calendar
+  const [isGoogleConnected, setIsGoogleConnected] = useState(true);
+
+  // Eventos de la Agenda (incluyendo sincronizados con Google)
+  const [calendarEvents, setCalendarEvents] = useState([
+    { id: 'e1', title: 'Grabar Reel para Adidas', brand: 'Adidas', date: '2026-10-28', time: '10:00 hs', category: 'grabacion', source: 'creator' },
+    { id: 'e2', title: 'Reunión de Estrategia con Agencia', brand: 'Google Calendar', date: '2026-10-28', time: '14:30 hs', category: 'google', source: 'google' },
+    { id: 'e3', title: 'Entrega de Borrador Video UGC', brand: 'Aurelia', date: '2026-10-29', time: '16:00 hs', category: 'entrega', source: 'creator' },
+    { id: 'e4', title: 'Llamada de Descubrimiento de Marca', brand: 'Google Calendar', date: '2026-10-30', time: '11:00 hs', category: 'reunion', source: 'google' },
+    { id: 'e5', title: 'Fecha Estimada de Cobro Factura', brand: 'Adidas', date: '2026-11-05', time: '09:00 hs', category: 'pago', source: 'creator' }
+  ]);
+
+  // Formulario de creación rápida (+ Crear)
+  const [createTitle, setCreateTitle] = useState('');
+  const [createBrand, setCreateBrand] = useState('');
+  const [createDate, setCreateDate] = useState('2026-10-28');
+  const [createTime, setCreateTime] = useState('10:00');
+  const [createCategory, setCreateCategory] = useState<'grabacion' | 'entrega' | 'reunion' | 'pago'>('grabacion');
 
   const [tasks, setTasks] = useState([
     { id: 't1', title: 'Enviar guión para aprobación a Adidas', brand: 'Adidas', status: 'pendiente', category: 'Grabar' },
@@ -231,13 +266,11 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     setLoading(false);
   }, [params?.creatorSlug]);
 
-  // CALCULO DINAMICO CON TIPO DE CAMBIO S/. 3.75 PARA SUMA TOTAL CONSOLIDADA
   const EXCHANGE_RATE_PEN_TO_USD = 3.75;
 
   const pendingColabs = colabs.filter(c => c.status !== 'Factura Cobrada' && c.status !== 'Campaña Cancelada' && c.dealType === 'Pago');
   const paidColabs = colabs.filter(c => c.status === 'Factura Cobrada' && c.dealType === 'Pago');
 
-  // Suma total unificada expresada en USD y PEN
   const totalPendingUsdConverted = pendingColabs.reduce((acc, c) => {
     if (c.currency === 'USD') return acc + (c.amount || 0);
     return acc + ((c.amount || 0) / EXCHANGE_RATE_PEN_TO_USD);
@@ -249,6 +282,41 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   }, 0);
 
   const activeBrandsNames = colabs.filter(c => c.status !== 'Campaña Cancelada').map(c => c.brand).join(', ');
+
+  const handleCreateSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createTitle) return;
+
+    if (createType === 'evento') {
+      const newEvt = {
+        id: String(Date.now()),
+        title: createTitle,
+        brand: createBrand || 'Personal',
+        date: createDate,
+        time: `${createTime} hs`,
+        category: createCategory,
+        source: 'creator'
+      };
+      setCalendarEvents([...calendarEvents, newEvt]);
+    } else if (createType === 'tarea') {
+      const newTask = {
+        id: `t_${Date.now()}`,
+        title: createTitle,
+        brand: createBrand || 'General',
+        status: 'pendiente',
+        category: 'Manual'
+      };
+      setTasks([newTask, ...tasks]);
+    }
+
+    setCreateType(null);
+    setCreateTitle('');
+    setCreateBrand('');
+  };
+
+  const handleDeleteEvent = (eventId: string) => {
+    setCalendarEvents(calendarEvents.filter(e => e.id !== eventId));
+  };
 
   const handleTaskCheckboxClick = (task: any) => {
     if (task.status === 'completada') return;
@@ -414,6 +482,17 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     }
   };
 
+  const getCategoryBadge = (cat: string) => {
+    switch (cat) {
+      case 'grabacion': return <span className="px-2 py-0.5 bg-purple-100 text-purple-700 font-bold text-[10px] rounded-md border border-purple-200">🎥 Grabación</span>;
+      case 'entrega': return <span className="px-2 py-0.5 bg-pink-100 text-pink-700 font-bold text-[10px] rounded-md border border-pink-200">📤 Entrega</span>;
+      case 'reunion': return <span className="px-2 py-0.5 bg-blue-100 text-blue-700 font-bold text-[10px] rounded-md border border-blue-200">👥 Reunión</span>;
+      case 'pago': return <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 font-bold text-[10px] rounded-md border border-emerald-200">💵 Pago</span>;
+      case 'google': return <span className="px-2 py-0.5 bg-sky-100 text-sky-800 font-bold text-[10px] rounded-md border border-sky-200 flex items-center gap-1"><GoogleIcon /> Google Calendar</span>;
+      default: return <span className="px-2 py-0.5 bg-slate-100 text-slate-700 font-bold text-[10px] rounded-md">📌 Evento</span>;
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-indigo-100 flex items-center justify-center text-slate-700 text-sm font-semibold">
@@ -449,6 +528,9 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     );
   }
 
+  const selectedDateStr = `2026-10-${selectedDay < 10 ? '0' + selectedDay : selectedDay}`;
+  const dayEvents = calendarEvents.filter(e => e.date === selectedDateStr && (calendarFilter === 'todos' || e.category === calendarFilter));
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-indigo-100 text-slate-800 pb-28">
       <header className="sticky top-0 z-40 bg-white/70 backdrop-blur-xl border-b border-purple-100/60 px-6 py-4 shadow-sm">
@@ -481,7 +563,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
       <main className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
         
-        {/* HOME CON MÉTRICAS TOTALIZADAS Y LIMPIAS */}
+        {/* HOME */}
         {activeTab === 'home' && (
           <div className="space-y-6">
             <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-1.5 shadow-xl shadow-purple-100/50">
@@ -492,7 +574,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Total Cobrado Unificado */}
               <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-5 rounded-2xl space-y-2 shadow-lg shadow-purple-100/30">
                 <span className="text-xs text-slate-500 font-semibold block">💰 Total Cobrado</span>
                 <div className="text-2xl font-black text-emerald-600">
@@ -501,7 +582,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 <p className="text-[10px] text-slate-400">{paidColabs.length} campañas cobradas</p>
               </div>
 
-              {/* Pendiente por Cobrar Unificado */}
               <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-5 rounded-2xl space-y-2 shadow-lg shadow-purple-100/30">
                 <span className="text-xs text-slate-500 font-semibold block">⏳ Pendiente por Cobrar</span>
                 <div className="text-2xl font-black text-amber-500">
@@ -512,7 +592,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 </p>
               </div>
 
-              {/* Colaboraciones Activas Dinámicas */}
               <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-5 rounded-2xl space-y-2 shadow-lg shadow-purple-100/30 sm:col-span-2 lg:col-span-1">
                 <span className="text-xs text-slate-500 font-semibold block">📊 Colaboraciones Activas</span>
                 <div className="text-2xl font-black text-purple-600">{colabs.filter(c => c.status !== 'Campaña Cancelada').length} Marcas</div>
@@ -559,7 +638,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           </div>
         )}
 
-        {/* PESTAÑA COLABS */}
+        {/* COLABS */}
         {activeTab === 'colabs' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -736,14 +815,214 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           </div>
         )}
 
-        {/* OTRAS PESTAÑAS */}
+        {/* PESTAÑA AGENDA CON GOOGLE CALENDAR & BOTÓN CREAR */}
         {activeTab === 'calendar' && (
-          <div className="bg-white/80 p-8 rounded-2xl text-center space-y-3 shadow-xl">
-            <h2 className="text-lg font-bold text-slate-800">Calendario de Contenidos</h2>
-            <p className="text-xs text-slate-500">Agenda tus fechas de grabación y publicaciones oficiales.</p>
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">Agenda & Google Calendar</h2>
+                <p className="text-xs text-slate-500">Gestión unificada de eventos, tareas y citas sincronizadas en tiempo real.</p>
+              </div>
+
+              <div className="flex items-center space-x-3 relative">
+                {/* Indicador de Google Calendar */}
+                <button
+                  onClick={() => setIsGoogleConnected(!isGoogleConnected)}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border ${
+                    isGoogleConnected
+                      ? 'bg-sky-50 border-sky-200 text-sky-700'
+                      : 'bg-slate-50 border-slate-200 text-slate-500'
+                  }`}
+                  title="Haz clic para alternar sincronización"
+                >
+                  <GoogleIcon />
+                  <span>{isGoogleConnected ? 'Sincronizado' : 'Conectar Google'}</span>
+                </button>
+
+                {/* BOTÓN ESTILO GOOGLE + CREAR */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowCreateDropdown(!showCreateDropdown)}
+                    className="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-purple-200 transition flex items-center gap-2"
+                  >
+                    <span className="text-base font-black">+</span>
+                    <span>Crear</span>
+                    <span className="text-[10px]">▼</span>
+                  </button>
+
+                  {/* Menú Desplegable Opciones (+ Crear) */}
+                  {showCreateDropdown && (
+                    <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-2xl border border-purple-100 py-2 z-50 animate-in fade-in zoom-in duration-150">
+                      <button
+                        onClick={() => { setCreateType('evento'); setShowCreateDropdown(false); }}
+                        className="w-full text-left px-4 py-2.5 hover:bg-purple-50 text-xs font-bold text-slate-700 flex items-center gap-2.5 transition"
+                      >
+                        <span className="text-base">📅</span>
+                        <div>
+                          <div>Evento</div>
+                          <p className="text-[10px] text-slate-400 font-normal">Rodajes, reuniones, pautas</p>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => { setCreateType('tarea'); setShowCreateDropdown(false); }}
+                        className="w-full text-left px-4 py-2.5 hover:bg-purple-50 text-xs font-bold text-slate-700 flex items-center gap-2.5 transition border-t border-slate-100"
+                      >
+                        <span className="text-base">✅</span>
+                        <div>
+                          <div>Tarea</div>
+                          <p className="text-[10px] text-slate-400 font-normal">Pendientes personales</p>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => { setCreateType('citas'); setShowCreateDropdown(false); }}
+                        className="w-full text-left px-4 py-2.5 hover:bg-purple-50 text-xs font-bold text-slate-700 flex items-center gap-2.5 transition border-t border-slate-100"
+                      >
+                        <span className="text-base">📆</span>
+                        <div>
+                          <div>Agenda de Citas</div>
+                          <p className="text-[10px] text-slate-400 font-normal">Bloques para marcas</p>
+                        </div>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Filtros de Tipo de Evento */}
+            <div className="flex items-center space-x-2 bg-white/80 p-1.5 rounded-2xl border border-white/60 shadow-sm overflow-x-auto">
+              {[
+                { key: 'todos', label: 'Todos los Eventos' },
+                { key: 'grabacion', label: '🎥 Grabaciones' },
+                { key: 'entrega', label: '📤 Entregas / Borradores' },
+                { key: 'reunion', label: '👥 Reuniones' },
+                { key: 'pago', label: '💵 Pagos & Facturas' },
+                { key: 'google', label: '🌐 Google Calendar' }
+              ].map((f) => (
+                <button
+                  key={f.key}
+                  onClick={() => setCalendarFilter(f.key as any)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                    calendarFilter === f.key
+                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Grid del Mes Octubre 2026 */}
+              <div className="lg:col-span-2 bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl shadow-purple-100/30">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <h3 className="font-extrabold text-slate-800 text-base">October 2026</h3>
+                  <div className="text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-xl border border-purple-100">
+                    Hoy: 28 de Octubre
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-7 text-center text-[11px] font-bold text-slate-400 py-1">
+                  <span>Dom</span><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span>
+                </div>
+
+                <div className="grid grid-cols-7 gap-1.5">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={`empty-${i}`} className="h-12 rounded-2xl bg-slate-50/30 opacity-20"></div>
+                  ))}
+
+                  {[...Array(31)].map((_, i) => {
+                    const dayNum = i + 1;
+                    const dateStr = `2026-10-${dayNum < 10 ? '0' + dayNum : dayNum}`;
+                    const dayEvts = calendarEvents.filter(e => e.date === dateStr);
+                    const isSelected = selectedDay === dayNum;
+                    const isToday = dayNum === 28;
+
+                    return (
+                      <button
+                        key={dayNum}
+                        onClick={() => setSelectedDay(dayNum)}
+                        className={`h-12 rounded-2xl flex flex-col items-center justify-between p-1.5 text-xs font-bold transition relative border ${
+                          isSelected
+                            ? 'bg-gradient-to-tr from-purple-500 to-pink-500 text-white border-transparent shadow-md shadow-purple-200 ring-2 ring-purple-300'
+                            : isToday
+                            ? 'bg-purple-50 border-purple-300 text-purple-700'
+                            : 'bg-white/60 border-slate-100 text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span>{dayNum}</span>
+                        {dayEvts.length > 0 && (
+                          <div className="flex items-center gap-0.5">
+                            {dayEvts.some(e => e.source === 'google') && <span className="w-1.5 h-1.5 rounded-full bg-sky-400"></span>}
+                            {dayEvts.some(e => e.source === 'creator') && <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-pink-500'}`}></span>}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Panel Lateral del Día Seleccionado */}
+              <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl shadow-purple-100/30 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-extrabold text-slate-800 text-base">Día {selectedDay} de Octubre</h3>
+                      <p className="text-[11px] text-slate-400 font-medium">{dayEvents.length} elementos programados</p>
+                    </div>
+                    <span className="text-xl">📅</span>
+                  </div>
+
+                  <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+                    {dayEvents.length === 0 ? (
+                      <div className="p-8 text-center space-y-2">
+                        <span className="text-3xl block">☕</span>
+                        <p className="text-xs text-slate-400 font-medium">No hay eventos para este día.</p>
+                      </div>
+                    ) : (
+                      dayEvents.map((evt) => (
+                        <div key={evt.id} className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-2 relative hover:border-purple-200 transition">
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-0.5">
+                              {getCategoryBadge(evt.category)}
+                              <h4 className="font-bold text-slate-800 text-xs pt-1">{evt.title}</h4>
+                            </div>
+                            {evt.source !== 'google' && (
+                              <button
+                                onClick={() => handleDeleteEvent(evt.id)}
+                                className="text-slate-300 hover:text-rose-500 text-xs p-1"
+                                title="Eliminar evento"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold pt-1 border-t border-slate-100">
+                            <span>🏷️ Marca: <strong className="text-purple-600">{evt.brand}</strong></span>
+                            <span>🕒 {evt.time}</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setCreateType('evento')}
+                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition"
+                >
+                  + Agregar Evento
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
+        {/* TAREAS */}
         {activeTab === 'tasks' && (
           <div className="bg-white/80 p-6 rounded-2xl space-y-3 shadow-xl">
             <h2 className="text-lg font-bold text-slate-800">Lista de Tareas Completa</h2>
@@ -768,6 +1047,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           </div>
         )}
 
+        {/* INGRESOS */}
         {activeTab === 'income' && (
           <div className="bg-white/80 p-6 rounded-2xl space-y-3 shadow-xl">
             <h2 className="text-lg font-bold text-slate-800">Control de Ingresos</h2>
@@ -777,6 +1057,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           </div>
         )}
 
+        {/* MEDIAKIT */}
         {activeTab === 'mediakit' && (
           <div className="bg-white/80 p-6 rounded-2xl space-y-3 shadow-xl">
             <h2 className="text-lg font-bold text-slate-800">Media Kit Profesional</h2>
@@ -785,6 +1066,122 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         )}
 
       </main>
+
+      {/* MODAL UNIFICADO (+ CREAR) */}
+      {createType && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl border border-purple-100">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                <span>{createType === 'evento' ? '📅 Nuevo Evento' : createType === 'tarea' ? '✅ Nueva Tarea' : '📆 Agenda de Citas'}</span>
+              </h2>
+              <button onClick={() => setCreateType(null)} className="text-slate-400 hover:text-slate-600 text-xs font-bold">✕</button>
+            </div>
+
+            {createType === 'citas' ? (
+              <div className="p-4 bg-purple-50 rounded-2xl space-y-3 text-xs text-purple-900">
+                <p className="font-semibold leading-relaxed">
+                  Configura tus bloques de disponibilidad para que marcas e agencias puedan reservar llamadas directas sincronizadas con tu Google Calendar.
+                </p>
+                <div className="p-3 bg-white rounded-xl border border-purple-200">
+                  <span className="block font-bold text-purple-700 mb-1">🔗 Tu enlace público de reuniones:</span>
+                  <code className="text-[11px] text-slate-600 font-mono bg-slate-100 p-1 rounded block truncate">
+                    https://creatordesk.io/{displayName.toLowerCase().replace(/\s+/g, '')}/book
+                  </code>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCreateType(null)}
+                  className="w-full py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-xl"
+                >
+                  Guardar Configuración de Citas
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleCreateSubmit} className="space-y-3.5">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Título *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder={createType === 'evento' ? "Ej: Rodaje de Reel, Reunión..." : "Ej: Enviar factura a marca..."}
+                    value={createTitle}
+                    onChange={(e) => setCreateTitle(e.target.value)}
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Marca / Proyecto</label>
+                  <input
+                    type="text"
+                    placeholder="Ej: Adidas, Aurelia, Personal..."
+                    value={createBrand}
+                    onChange={(e) => setCreateBrand(e.target.value)}
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-400"
+                  />
+                </div>
+
+                {createType === 'evento' && (
+                  <>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Fecha</label>
+                        <input
+                          type="date"
+                          value={createDate}
+                          onChange={(e) => setCreateDate(e.target.value)}
+                          className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Hora</label>
+                        <input
+                          type="time"
+                          value={createTime}
+                          onChange={(e) => setCreateTime(e.target.value)}
+                          className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Categoría de Evento</label>
+                      <select
+                        value={createCategory}
+                        onChange={(e) => setCreateCategory(e.target.value as any)}
+                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none"
+                      >
+                        <option value="grabacion">🎥 Grabación / Rodaje</option>
+                        <option value="entrega">📤 Entrega de Borrador / Publicación</option>
+                        <option value="reunion">👥 Reunión con Cliente</option>
+                        <option value="pago">💵 Recordatorio de Pago / Factura</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setCreateType(null)}
+                    className="px-4 py-2.5 bg-slate-100 text-slate-600 font-bold text-xs rounded-xl"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-200"
+                  >
+                    Guardar
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* MODAL INFORMACIÓN */}
       {infoModalColab && (
