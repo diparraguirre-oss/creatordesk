@@ -78,7 +78,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [user, setUser] = useState<any>(null);
   const [displayName, setDisplayName] = useState<string>('');
   const [daysRemaining, setDaysRemaining] = useState<number>(7);
-  const [activeTab, setActiveTab] = useState<'home' | 'colabs' | 'calendar' | 'tasks' | 'income' | 'mediakit'>('colabs');
+  const [activeTab, setActiveTab] = useState<'home' | 'colabs' | 'calendar' | 'tasks' | 'income' | 'mediakit'>('home');
 
   const [colabFilter, setColabFilter] = useState<string>('todas');
   const [showNewColabModal, setShowNewColabModal] = useState(false);
@@ -290,80 +290,22 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     pendingBreakdownText = 'Sin cobros pendientes';
   }
 
-  const handleCreateSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!createTitle) return;
-
-    if (createType === 'evento') {
-      const googleToken = localStorage.getItem('google_access_token');
-
-      if (googleToken) {
-        try {
-          const startDateTime = `${createDate}T${createTime}:00-05:00`;
-          const endHour = parseInt(createTime.split(':')[0] || '10') + 1;
-          const formattedEndHour = endHour < 10 ? `0${endHour}` : `${endHour}`;
-          const endDateTime = `${createDate}T${formattedEndHour}:${createTime.split(':')[1] || '00'}:00-05:00`;
-
-          await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${googleToken}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              summary: `${createTitle} (${createBrand || 'CreatorDesk'})`,
-              description: `Evento creado desde CreatorDesk.`,
-              start: { dateTime: startDateTime, timeZone: 'America/Lima' },
-              end: { dateTime: endDateTime, timeZone: 'America/Lima' }
-            })
-          });
-
-          fetchGoogleCalendarEvents(googleToken);
-        } catch (err) {
-          console.error('Error enviando evento a Google:', err);
-        }
-      } else {
-        const newEvt = {
-          id: String(Date.now()),
-          title: createTitle,
-          brand: createBrand || 'Personal',
-          date: createDate,
-          time: `${createTime} hs`,
-          category: createCategory,
-          source: 'creator'
-        };
-        setCalendarEvents(prev => [...prev, newEvt]);
-      }
-    } else if (createType === 'tarea') {
-      const newTask = {
-        id: `t_${Date.now()}`,
-        title: createTitle,
-        brand: createBrand || 'General',
-        status: 'pendiente',
-        category: 'Manual'
-      };
-      setTasks([newTask, ...tasks]);
-    }
-
-    setCreateType(null);
-    setCreateTitle('');
-    setCreateBrand('');
-  };
-
-  const handleDeleteEvent = (eventId: string) => {
-    setCalendarEvents(calendarEvents.filter(e => e.id !== eventId));
-  };
-
+  // ACCIÓN AL ACTIVAR EL CHECKBOX DE UNA TAREA PENDIENTE
   const handleTaskCheckboxClick = (task: any) => {
     if (task.status === 'completada') return;
     setPendingTask(task);
     setShowTaskConfirmModal(true);
   };
 
-  const handleDeleteColab = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setColabs(colabs.filter(c => c.id !== id));
-    setColabToDelete(null);
+  const confirmCompleteTask = () => {
+    if (!pendingTask) return;
+    setTasks(tasks.map(t => t.id === pendingTask.id ? { ...t, status: 'completada' } : t));
+    setShowTaskConfirmModal(false);
+    setPendingTask(null);
+  };
+
+  const handleDeleteEvent = (eventId: string) => {
+    setCalendarEvents(calendarEvents.filter(e => e.id !== eventId));
   };
 
   const totalDeliverablesCount = deliverables.reels + deliverables.tiktoks + deliverables.stories + deliverables.facebook + deliverables.youtube + deliverables.evento;
@@ -424,14 +366,12 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     return 0;
   };
 
-  // LÓGICA DE VALIDACIÓN ESTRICTA Y BLOQUEO ENTRE ESTADOS
   const handleStrictStatusChange = (colab: any, targetStatus: string) => {
     setStatusErrorMsg('');
     const currentStatus = colab.status;
 
     if (currentStatus === targetStatus) return;
 
-    // 1. VALIDACIÓN: Campaña Cancelada
     if (currentStatus === 'Campaña Cancelada') {
       setStatusErrorMsg('La campaña está cancelada. No es posible cambiar a otros estados.');
       return;
@@ -446,7 +386,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       return;
     }
 
-    // 2. VALIDACIÓN: Guión Observado
     if (currentStatus === 'Guión Observado') {
       const allowedFromGuionObservado = ['Guión Enviado', 'Guión Aprobado', 'Campaña Cancelada'];
       if (!allowedFromGuionObservado.includes(targetStatus)) {
@@ -455,7 +394,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       }
     }
 
-    // 3. VALIDACIÓN: Video Observado
     if (currentStatus === 'Video Observado') {
       const allowedFromVideoObservado = ['En Edición', 'Video Entregado', 'Video Aprobado', 'Campaña Cancelada'];
       if (!allowedFromVideoObservado.includes(targetStatus)) {
@@ -464,7 +402,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       }
     }
 
-    // 4. VALIDACIÓN: Avance Paso a Paso (Secuencia lineal)
     const currentIdx = MAIN_LINEAL_SEQUENCE.indexOf(currentStatus);
     const targetIdx = MAIN_LINEAL_SEQUENCE.indexOf(targetStatus);
 
@@ -596,10 +533,11 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               </div>
             </div>
 
+            {/* SECCIÓN TAREAS PRIORITARIAS DE HOY */}
             <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-2xl space-y-4 shadow-xl shadow-purple-100/40">
-              <div className="flex items-center justify-between px-3.5">
-                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-3">
-                  <span className="text-sm leading-none">✅</span>
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <span className="text-emerald-500 text-sm">✅</span>
                   <span>Tareas Prioritarias de Hoy</span>
                 </h3>
                 <button
@@ -611,25 +549,28 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               </div>
 
               <div className="space-y-2">
-                {tasks.map((t) => (
-                  <div key={t.id} className="flex items-center justify-between p-3.5 bg-slate-50/80 border border-slate-200/80 rounded-xl text-xs">
-                    <div className="flex items-center space-x-3">
-                      <input
-                        type="checkbox"
-                        checked={t.status === 'completada'}
-                        disabled={t.status === 'completada'}
-                        onChange={() => handleTaskCheckboxClick(t)}
-                        className="rounded border-slate-300 text-purple-600 focus:ring-purple-400 cursor-pointer disabled:cursor-not-allowed"
-                      />
-                      <span className={t.status === 'completada' ? 'line-through text-slate-400 font-medium' : 'text-slate-800 font-medium'}>
-                        {t.title}
+                {tasks.map((t) => {
+                  const isCompleted = t.status === 'completada';
+                  return (
+                    <div key={t.id} className="flex items-center justify-between p-3.5 bg-slate-50/80 border border-slate-200/80 rounded-2xl text-xs">
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="checkbox"
+                          checked={isCompleted}
+                          disabled={isCompleted}
+                          onChange={() => handleTaskCheckboxClick(t)}
+                          className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-400 cursor-pointer disabled:cursor-not-allowed"
+                        />
+                        <span className={isCompleted ? 'line-through text-slate-400 font-medium' : 'text-slate-800 font-medium'}>
+                          {t.title}
+                        </span>
+                      </div>
+                      <span className="px-2.5 py-1 bg-purple-50 border border-purple-200 text-purple-700 text-[10px] rounded-lg font-bold">
+                        {t.brand}
                       </span>
                     </div>
-                    <span className="px-2 py-0.5 bg-purple-100 border border-purple-200 text-purple-700 text-[10px] rounded-md font-semibold">
-                      {t.brand}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -980,14 +921,25 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           <div className="bg-white/80 p-6 rounded-2xl space-y-3 shadow-xl">
             <h2 className="text-lg font-bold text-slate-800">Lista de Tareas Completa</h2>
             <div className="space-y-2">
-              {tasks.map((t) => (
-                <div key={t.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl text-xs">
-                  <div className="flex items-center space-x-3">
-                    <input type="checkbox" checked={t.status === 'completada'} onChange={() => handleTaskCheckboxClick(t)} className="rounded text-purple-600" />
-                    <span className={t.status === 'completada' ? 'line-through text-slate-400' : 'text-slate-800 font-medium'}>{t.title}</span>
+              {tasks.map((t) => {
+                const isCompleted = t.status === 'completada';
+                return (
+                  <div key={t.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl text-xs">
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        checked={isCompleted}
+                        disabled={isCompleted}
+                        onChange={() => handleTaskCheckboxClick(t)}
+                        className="rounded text-purple-600 disabled:cursor-not-allowed"
+                      />
+                      <span className={isCompleted ? 'line-through text-slate-400' : 'text-slate-800 font-medium'}>
+                        {t.title}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -1011,6 +963,44 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         )}
 
       </main>
+
+      {/* MODAL CONFIRMACIÓN DE MARCAR TAREA COMO REALIZADA (IMAGEN 01) */}
+      {showTaskConfirmModal && pendingTask && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-3xl max-w-sm w-full text-center space-y-4 shadow-2xl border border-purple-100">
+            <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto text-emerald-600 font-bold text-xl">
+              ✓
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="font-black text-slate-800 text-base">¿Marcar Tarea como Realizada?</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Confirmas que has completado la tarea: <strong className="text-slate-800">"{pendingTask.title}"</strong>. Una vez confirmada, quedará registrada como completada en tu panel personal.
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowTaskConfirmModal(false);
+                  setPendingTask(null);
+                }}
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-xl transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmCompleteTask}
+                className="flex-1 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-extrabold text-xs rounded-xl shadow-md transition"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL NUEVA COLABORACIÓN */}
       {showNewColabModal && (
@@ -1259,7 +1249,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         </div>
       )}
 
-      {/* MODAL CAMBIAR ESTADO CON MENSAJES Y BLOQUEOS EN ROJO */}
+      {/* MODAL CAMBIAR ESTADO */}
       {statusModalColab && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl border border-purple-100 max-h-[88vh] overflow-y-auto relative">
