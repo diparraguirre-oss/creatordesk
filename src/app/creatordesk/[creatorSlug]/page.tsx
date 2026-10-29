@@ -126,25 +126,45 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [showTaskConfirmModal, setShowTaskConfirmModal] = useState(false);
   const [colabToDelete, setColabToDelete] = useState<any>(null);
 
-  // ESTADOS DE LA AGENDA Y GOOGLE CALENDAR
+  // ESTADOS DE LA AGENDA Y GOOGLE CALENDAR OAUTH
   const [selectedDay, setSelectedDay] = useState<number>(28);
   const [calendarFilter, setCalendarFilter] = useState<'todos' | 'grabacion' | 'entrega' | 'reunion' | 'pago' | 'google'>('todos');
   const [showCreateDropdown, setShowCreateDropdown] = useState(false);
   const [createType, setCreateType] = useState<'evento' | 'tarea' | 'citas' | null>(null);
 
-  // Estado Sincronización Google Calendar
-  const [isGoogleConnected, setIsGoogleConnected] = useState(true);
+  // Estado Real de Google Auth
+  const [isGoogleConnected, setIsGoogleConnected] = useState(false);
+  const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(null);
 
-  // Eventos de la Agenda (incluyendo sincronizados con Google)
-  const [calendarEvents, setCalendarEvents] = useState([
+  // Eventos de la Agenda
+  const [calendarEvents, setCalendarEvents] = useState<any[]>([
     { id: 'e1', title: 'Grabar Reel para Adidas', brand: 'Adidas', date: '2026-10-28', time: '10:00 hs', category: 'grabacion', source: 'creator' },
-    { id: 'e2', title: 'Reunión de Estrategia con Agencia', brand: 'Google Calendar', date: '2026-10-28', time: '14:30 hs', category: 'google', source: 'google' },
-    { id: 'e3', title: 'Entrega de Borrador Video UGC', brand: 'Aurelia', date: '2026-10-29', time: '16:00 hs', category: 'entrega', source: 'creator' },
-    { id: 'e4', title: 'Llamada de Descubrimiento de Marca', brand: 'Google Calendar', date: '2026-10-30', time: '11:00 hs', category: 'reunion', source: 'google' },
-    { id: 'e5', title: 'Fecha Estimada de Cobro Factura', brand: 'Adidas', date: '2026-11-05', time: '09:00 hs', category: 'pago', source: 'creator' }
+    { id: 'e2', title: 'Entrega de Borrador Video UGC', brand: 'Aurelia', date: '2026-10-29', time: '16:00 hs', category: 'entrega', source: 'creator' },
+    { id: 'e3', title: 'Fecha Estimada de Cobro Factura', brand: 'Adidas', date: '2026-11-05', time: '09:00 hs', category: 'pago', source: 'creator' }
   ]);
 
-  // Formulario de creación rápida (+ Crear)
+  // Redirección a Inicio de Sesión de Google (OAuth 2.0)
+  const handleGoogleAuthConnect = () => {
+    if (isGoogleConnected) {
+      // Desconectar
+      setIsGoogleConnected(false);
+      setGoogleAccessToken(null);
+      setCalendarEvents(calendarEvents.filter(e => e.source !== 'google'));
+      return;
+    }
+
+    // ID de Cliente de Google Cloud Console
+    const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 'TU_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+    const redirectUri = typeof window !== 'undefined' ? `${window.location.origin}/api/auth/google/callback` : '';
+    const scope = encodeURIComponent('https://www.googleapis.com/auth/calendar.events.readonly https://www.googleapis.com/auth/calendar.events');
+
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}&prompt=consent`;
+
+    // Redirigir a la pantalla oficial de inicio de sesión de Google
+    window.location.href = authUrl;
+  };
+
+  // Formulario de creación
   const [createTitle, setCreateTitle] = useState('');
   const [createBrand, setCreateBrand] = useState('');
   const [createDate, setCreateDate] = useState('2026-10-28');
@@ -815,7 +835,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           </div>
         )}
 
-        {/* PESTAÑA AGENDA CON GOOGLE CALENDAR & BOTÓN CREAR */}
+        {/* PESTAÑA AGENDA CON GOOGLE CALENDAR REAL */}
         {activeTab === 'calendar' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -825,15 +845,15 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               </div>
 
               <div className="flex items-center space-x-3 relative">
-                {/* Indicador de Google Calendar */}
+                {/* Botón de Autenticación de Google Real */}
                 <button
-                  onClick={() => setIsGoogleConnected(!isGoogleConnected)}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border ${
+                  onClick={handleGoogleAuthConnect}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border shadow-sm ${
                     isGoogleConnected
-                      ? 'bg-sky-50 border-sky-200 text-sky-700'
-                      : 'bg-slate-50 border-slate-200 text-slate-500'
+                      ? 'bg-sky-50 border-sky-200 text-sky-700 hover:bg-sky-100'
+                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                   }`}
-                  title="Haz clic para alternar sincronización"
+                  title={isGoogleConnected ? "Google Calendar Conectado (Clic para desconectar)" : "Iniciar sesión con Google para sincronizar tu agenda"}
                 >
                   <GoogleIcon />
                   <span>{isGoogleConnected ? 'Sincronizado' : 'Conectar Google'}</span>
@@ -850,7 +870,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                     <span className="text-[10px]">▼</span>
                   </button>
 
-                  {/* Menú Desplegable Opciones (+ Crear) */}
                   {showCreateDropdown && (
                     <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-2xl border border-purple-100 py-2 z-50 animate-in fade-in zoom-in duration-150">
                       <button
