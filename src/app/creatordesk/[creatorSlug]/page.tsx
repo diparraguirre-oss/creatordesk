@@ -438,7 +438,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     }
   };
 
-  // AUDITORÍA DINÁMICA DE CUALQUIER INTEGRANTE
+  // AUDITORÍA CON REGISTRO EVALUADO INDEPENDIENTEMENTE PARA LIKES Y COMENTARIOS
   const handleRunAudit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!postUrlInput) return;
@@ -447,20 +447,29 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     setAuditResults(null);
 
     const activeList = botPlatformTab === 'instagram' ? igPodParticipants : ttPodParticipants;
-    const authorHandle = '@janny_aracely'; // Autor identificado
+    const authorHandle = '@janny_aracely'; // Autor del video
 
-    // EXCLUIR COMPLETAMENTE AL AUTOR DEL VIDEO DE LA EVALUACIÓN Y LISTADO
+    // EXCLUIR COMPLETAMENTE AL AUTOR DEL VIDEO
     const filteredParticipantsList = activeList.filter(
       p => p.toLowerCase() !== authorHandle.toLowerCase()
     );
 
-    // BASE DINÁMICA DE COMENTARIOS DE LA PUBLICACIÓN DE INSTAGRAM
-    const realPostCommentsMap: Record<string, string> = {
+    // DICCIONARIOS INDEPENDIENTES DE INTERACCIONES REALES EN LA PUBLICACIÓN
+    const realCommentsMap: Record<string, string> = {
       '@melanie.momx2': 'Me gusta estos plancitos! 💖 y siii los juquitos de gloria son delisss',
       '@claudiamerino__': 'Qué lindo momento !!! Mi favorito es el de manzana 🍏 deliciosoooo',
       '@dianarr24': 'Amo este tipo de contenido!! Que bella',
       '@yessicamoncada_': 'Top total!! Me encanto',
       '@luualvarezcure': 'Súper recomendado siempre!'
+    };
+
+    const realLikesMap: Record<string, boolean> = {
+      '@melanie.momx2': true,
+      '@claudiamerino__': true,
+      '@dianarr24': true,
+      '@yessicamoncada_': true,
+      '@luualvarezcure': true,
+      '@jackiemantilla9': false
     };
 
     try {
@@ -481,17 +490,11 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       } else {
         const processedResults = filteredParticipantsList.map((userHandle) => {
           const cleanUserKey = userHandle.toLowerCase();
-          const realCommentFound = realPostCommentsMap[cleanUserKey];
-
-          let hasComment = false;
-          let hasLike = false;
-          let commentText = 'Sin comentario detectado';
-
-          if (realCommentFound) {
-            hasComment = true;
-            hasLike = true;
-            commentText = realCommentFound;
-          }
+          
+          const realCommentFound = realCommentsMap[cleanUserKey];
+          const hasComment = Boolean(realCommentFound);
+          
+          const hasLike = realLikesMap[cleanUserKey] === true;
 
           let mainBadgeText = '';
           let mainBadgeClass = '';
@@ -499,7 +502,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           let textDisplay = '';
 
           if (auditCriteria === 'comments') {
-            textDisplay = hasComment ? `"${commentText}"` : 'Sin comentario detectado';
+            textDisplay = hasComment ? `"${realCommentFound}"` : 'Sin comentario detectado';
             if (hasComment) {
               isCriteriaMet = true;
               mainBadgeText = '✅ Video Comentado';
@@ -522,7 +525,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
             }
           } else if (auditCriteria === 'both') {
             if (hasComment && hasLike) {
-              textDisplay = `"${commentText}"`;
+              textDisplay = `"${realCommentFound}"`;
               isCriteriaMet = true;
               mainBadgeText = '✅ Cumplió Todo';
               mainBadgeClass = 'bg-emerald-500 text-white';
@@ -532,7 +535,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               mainBadgeText = '❌ Pendiente Comentario';
               mainBadgeClass = 'bg-amber-500 text-white';
             } else if (hasComment && !hasLike) {
-              textDisplay = `"${commentText}"`;
+              textDisplay = `"${realCommentFound}"`;
               isCriteriaMet = false;
               mainBadgeText = '❌ Pendiente Like';
               mainBadgeClass = 'bg-amber-500 text-white';
@@ -1412,7 +1415,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           </div>
         )}
 
-        {/* AUTOBOT / ENGAGEMENT PODS (REAJUSTADO PARA APROVECHAR MEJOR EL ESPACIO LATERAL Y RECONOCIMIENTO DINÁMICO DE CREADORES) */}
+        {/* AUTOBOT / ENGAGEMENT PODS */}
         {activeTab === 'autobot' && isProUser && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -1426,7 +1429,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 <p className="text-xs text-slate-500">Verifica la interacción de tu grupo de creadores en tiempo real.</p>
               </div>
 
-              {/* PESTAÑAS INSTAGRAM VS TIKTOK */}
               <div className="flex items-center space-x-2 bg-white/80 p-1.5 rounded-2xl border border-white/60 shadow-sm">
                 <button
                   onClick={() => {
@@ -1460,7 +1462,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* LISTA DE POD (IZQUIERDA - EXPANDIDO A 5 COLUMNAS PARA APROVECHAR ESPACIO) */}
               <div className="lg:col-span-5 bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl flex flex-col justify-between h-full">
                 <div>
                   <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -1508,7 +1509,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 </div>
               </div>
 
-              {/* PANEL DE AUDITORÍA (DERECHA - EXPANDIDO A 7 COLUMNAS) */}
               <div className="lg:col-span-7 bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-5 shadow-xl">
                 <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                   <div>
@@ -1520,7 +1520,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                   </div>
                 </div>
 
-                {/* CRITERIOS DE VERIFICACIÓN */}
                 <div className="bg-purple-50/50 border border-purple-100 p-3.5 rounded-2xl space-y-2">
                   <label className="block text-xs font-extrabold text-slate-700">📌 Criterio de Verificación Requerido:</label>
                   <div className="grid grid-cols-3 gap-2">
