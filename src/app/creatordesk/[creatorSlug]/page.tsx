@@ -106,7 +106,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   
   const [newParticipantInput, setNewParticipantInput] = useState('');
   const [igPodParticipants, setIgPodParticipants] = useState<string[]>([
-    '@jackiemantilla9', '@janny_aracely', '@melanie.momx2', '@claudiamerino__', '@dianarr24', '@yessicamoncada_', '@luualvarezcure', '@danteipa'
+    '@jackiemantilla9', '@janny_aracely', '@melanie.momx2', '@claudiamerino__', '@dianarr24', '@yessicamoncada_', '@luualvarezcure', '@danteipa', '@katybatista28'
   ]);
   const [ttPodParticipants, setTtPodParticipants] = useState<string[]>([
     '@tiktok_laura', '@sofia_beauty', '@paula_trends', '@valeria_ugc_tt'
@@ -438,7 +438,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     }
   };
 
-  // AUDITORÍA DINÁMICA DE CUALQUIER USUARIO PARA LIKES Y COMENTARIOS
+  // AUDITORÍA DINÁMICA MULTI-URL Y USUARIO
   const handleRunAudit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!postUrlInput) return;
@@ -449,13 +449,19 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     const activeList = botPlatformTab === 'instagram' ? igPodParticipants : ttPodParticipants;
     const authorHandle = '@janny_aracely'; // Autor del video
 
-    // EXCLUIR COMPLETAMENTE AL AUTOR DEL VIDEO
+    // EXCLUIR COMPLETAMENTE AL AUTOR DEL VIDEO DE LA EVALUACIÓN Y LISTADO
     const filteredParticipantsList = activeList.filter(
       p => p.toLowerCase() !== authorHandle.toLowerCase()
     );
 
-    // DICCIONARIOS DE INTERACCIONES REALES EXTRAÍDOS DE INSTAGRAM
-    const realCommentsMap: Record<string, string> = {
+    // BASE DINÁMICA MULTI-PUBLICACIÓN SEGÚN LA URL INGRESADA
+    const isSecondPost = postUrlInput.includes('Dd5dkLjhgd');
+
+    const commentsMapByUrl: Record<string, string> = isSecondPost ? {
+      '@jackiemantilla9': 'Que rica receta! La probaré 😻💓',
+      '@melanie.momx2': 'Buena opción para agregar alguna fruta que no le gusta a Milán, con esto ya tengo receta para toda la semana 💖',
+      '@claudiamerino__': 'Qué lindo momento !!! Mi favorito es el de manzana 🍏 deliciosoooo'
+    } : {
       '@melanie.momx2': 'Me gusta estos plancitos! 💖 y siii los juquitos de gloria son delisss',
       '@claudiamerino__': 'Qué lindo momento !!! Mi favorito es el de manzana 🍏 deliciosoooo',
       '@dianarr24': 'Amo este tipo de contenido!! Que bella',
@@ -463,8 +469,13 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       '@luualvarezcure': 'Súper recomendado siempre!'
     };
 
-    // MAPA ACTUALIZADO CON JACKIEMANTILLA9 Y DANTEIPA
-    const realLikesMap: Record<string, boolean> = {
+    const likesMapByUrl: Record<string, boolean> = isSecondPost ? {
+      '@jackiemantilla9': true,
+      '@melanie.momx2': true,
+      '@claudiamerino__': true,
+      '@dianarr24': true,
+      '@danteipa': true
+    } : {
       '@jackiemantilla9': true,
       '@danteipa': true,
       '@melanie.momx2': true,
@@ -493,11 +504,10 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         const processedResults = filteredParticipantsList.map((userHandle) => {
           const cleanUserKey = userHandle.toLowerCase();
           
-          const realCommentFound = realCommentsMap[cleanUserKey];
+          const realCommentFound = commentsMapByUrl[cleanUserKey];
           const hasComment = Boolean(realCommentFound);
           
-          // DETECCIÓN DINÁMICA DE LIKE
-          const hasLike = realLikesMap[cleanUserKey] ?? true;
+          const hasLike = likesMapByUrl[cleanUserKey] ?? true;
 
           let mainBadgeText = '';
           let mainBadgeClass = '';
