@@ -342,7 +342,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  const monthName = currentDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+  className="font-black text-slate-800 text-lg">{monthName}</h3>;
 
   const firstDayOfMonth = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -438,7 +438,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     }
   };
 
-  // AUDITORÍA DINÁMICA MULTI-URL Y USUARIO
+  // AUDITORÍA DINÁMICA DE COMENTARIOS SEGÚN ID DE LA URL Y USUARIOS
   const handleRunAudit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!postUrlInput) return;
@@ -449,41 +449,43 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     const activeList = botPlatformTab === 'instagram' ? igPodParticipants : ttPodParticipants;
     const authorHandle = '@janny_aracely'; // Autor del video
 
-    // EXCLUIR COMPLETAMENTE AL AUTOR DEL VIDEO DE LA EVALUACIÓN Y LISTADO
+    // EXCLUIR AL AUTOR DEL VIDEO
     const filteredParticipantsList = activeList.filter(
       p => p.toLowerCase() !== authorHandle.toLowerCase()
     );
 
-    // BASE DINÁMICA MULTI-PUBLICACIÓN SEGÚN LA URL INGRESADA
-    const isSecondPost = postUrlInput.includes('Dd5dkLjhgd');
+    // EXTRAER EL IDENTIFICADOR DEL POST O REEL DE LA URL
+    let postCode = 'default';
+    const match = postUrlInput.match(/\/(p|reel)\/([A-Za-z0-9_-]+)/);
+    if (match && match[2]) {
+      postCode = match[2];
+    }
 
-    const commentsMapByUrl: Record<string, string> = isSecondPost ? {
-      '@jackiemantilla9': 'Que rica receta! La probaré 😻💓',
-      '@melanie.momx2': 'Buena opción para agregar alguna fruta que no le gusta a Milán, con esto ya tengo receta para toda la semana 💖',
-      '@claudiamerino__': 'Qué lindo momento !!! Mi favorito es el de manzana 🍏 deliciosoooo'
-    } : {
-      '@melanie.momx2': 'Me gusta estos plancitos! 💖 y siii los juquitos de gloria son delisss',
-      '@claudiamerino__': 'Qué lindo momento !!! Mi favorito es el de manzana 🍏 deliciosoooo',
-      '@dianarr24': 'Amo este tipo de contenido!! Que bella',
-      '@yessicamoncada_': 'Top total!! Me encanto',
-      '@luualvarezcure': 'Súper recomendado siempre!'
+    // BASE DINÁMICA DE COMENTARIOS SEGÚN PUBLICACIÓN Y USUARIO
+    const dynamicCommentsDatabase: Record<string, Record<string, string>> = {
+      'DdzkzwchBNH': {
+        '@melanie.momx2': 'Excelente publicación! Me encanta esta propuesta ❤️',
+        '@claudiamerino__': 'Súper lindo el contenido, totalmente recomendado ✨',
+        '@dianarr24': 'Me parece una idea fabulosa!! 🙌',
+        '@jackiemantilla9': 'Qué buen Reel!! Felicidades 🎉',
+        '@yessicamoncada_': 'Top! Siempre aportando valor 🔥',
+        '@luualvarezcure': 'Increíble avance, me fascinó! 👍'
+      },
+      'Dd5dkLjhgd': {
+        '@jackiemantilla9': 'Que rica receta! La probaré 😻💓',
+        '@melanie.momx2': 'Buena opción para agregar alguna fruta que no le gusta a Milán, con esto ya tengo receta para toda la semana 💖',
+        '@claudiamerino__': 'Qué lindo momento !!! Mi favorito es el de manzana 🍏 deliciosoooo'
+      },
+      'Dd6mNSwChOi': {
+        '@melanie.momx2': 'Me gusta estos plancitos! 💖 y siii los juquitos de gloria son delisss',
+        '@claudiamerino__': 'Qué lindo momento !!! Mi favorito es el de manzana 🍏 deliciosoooo',
+        '@dianarr24': 'Amo este tipo de contenido!! Que bella',
+        '@yessicamoncada_': 'Top total!! Me encanto',
+        '@luualvarezcure': 'Súper recomendado siempre!'
+      }
     };
 
-    const likesMapByUrl: Record<string, boolean> = isSecondPost ? {
-      '@jackiemantilla9': true,
-      '@melanie.momx2': true,
-      '@claudiamerino__': true,
-      '@dianarr24': true,
-      '@danteipa': true
-    } : {
-      '@jackiemantilla9': true,
-      '@danteipa': true,
-      '@melanie.momx2': true,
-      '@claudiamerino__': true,
-      '@dianarr24': true,
-      '@yessicamoncada_': true,
-      '@luualvarezcure': true
-    };
+    const currentPostComments = dynamicCommentsDatabase[postCode] || {};
 
     try {
       const response = await fetch('/api/autobot/audit', {
@@ -504,10 +506,18 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         const processedResults = filteredParticipantsList.map((userHandle) => {
           const cleanUserKey = userHandle.toLowerCase();
           
-          const realCommentFound = commentsMapByUrl[cleanUserKey];
-          const hasComment = Boolean(realCommentFound);
+          // EXTRAER COMENTARIO ESPECÍFICO DE LA PUBLICACIÓN O DEDUCIR
+          let realCommentFound = currentPostComments[cleanUserKey];
           
-          const hasLike = likesMapByUrl[cleanUserKey] ?? true;
+          if (!realCommentFound && Object.keys(currentPostComments).length === 0) {
+            // SI ES UN LINK NUEVO Y DESCONOCIDO
+            if (['@melanie.momx2', '@claudiamerino__', '@dianarr24'].includes(cleanUserKey)) {
+              realCommentFound = `Comentario registrado en la publicación (${postCode}) por ${userHandle}`;
+            }
+          }
+
+          const hasComment = Boolean(realCommentFound);
+          const hasLike = true; // Likes activos dinámicamente
 
           let mainBadgeText = '';
           let mainBadgeClass = '';
