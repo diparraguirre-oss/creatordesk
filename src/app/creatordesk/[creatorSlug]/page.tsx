@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
 
-// Componentes SVG vectoriales
+// Iconos vectoriales
 const InstagramIcon = () => (
   <svg className="w-4 h-4 text-pink-600 inline-block" fill="currentColor" viewBox="0 0 24 24">
     <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
@@ -79,7 +79,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [displayName, setDisplayName] = useState<string>('');
   const [isExpired, setIsExpired] = useState(false);
   const [daysRemaining, setDaysRemaining] = useState<number>(7);
-  const [activeTab, setActiveTab] = useState<'home' | 'colabs' | 'calendar' | 'tasks' | 'income' | 'mediakit'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'colabs' | 'calendar' | 'tasks' | 'income' | 'mediakit'>('colabs');
 
   const [colabFilter, setColabFilter] = useState<string>('todas');
   const [showNewColabModal, setShowNewColabModal] = useState(false);
@@ -278,7 +278,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const totalPaidUsdConverted = paidColabs.reduce((acc, c) => acc + (c.currency === 'USD' ? c.amount : c.amount / EXCHANGE_RATE_PEN_TO_USD), 0);
   const activeBrandsNames = colabs.filter(c => c.status !== 'Campaña Cancelada').map(c => c.brand).join(', ');
 
-  // CONSTRUCCIÓN DINÁMICA DEL DESGLOSE PENDIENTE DE MONEDAS
   const pendingUsdTotal = pendingColabs.filter(c => c.currency === 'USD').reduce((acc, c) => acc + c.amount, 0);
   const pendingPenTotal = pendingColabs.filter(c => c.currency === 'PEN').reduce((acc, c) => acc + c.amount, 0);
 
@@ -434,6 +433,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     return 0;
   };
 
+  // VALIDACIÓN DE SECUENCIA ESTRICTA (PASO A PASO)
   const handleStrictStatusChange = (colab: any, targetStatus: string) => {
     setStatusErrorMsg('');
     const currentStatus = colab.status;
@@ -459,7 +459,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     const targetIdx = STATUS_SEQUENCE.indexOf(targetStatus);
 
     if (currentIdx !== -1 && targetIdx !== -1 && targetIdx > currentIdx + 1) {
-      setStatusErrorMsg(`No puedes saltar de "${currentStatus}" a "${targetStatus}". El flujo debe ser paso a paso: ${STATUS_SEQUENCE[currentIdx + 1]}.`);
+      setStatusErrorMsg(`No puedes saltar de "${currentStatus}" a "${targetStatus}". El flujo debe ser secuencial: ${STATUS_SEQUENCE[currentIdx + 1]}.`);
       return;
     }
     applyStatusUpdate(colab.id, targetStatus);
@@ -998,42 +998,44 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
       </main>
 
-      {/* MODAL: NUEVA COLABORACIÓN */}
+      {/* MODAL NUEVA COLABORACIÓN CON ESTILOS RESTAURADOS */}
       {showNewColabModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-6 rounded-3xl max-w-lg w-full space-y-4 shadow-2xl border border-purple-100 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-base font-bold text-slate-800">🤝 Nueva Colaboración</h2>
+          <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl border border-purple-100 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+              <span>🤝</span> <span>Nueva Colaboración</span>
+            </h2>
             <form onSubmit={handleCreateColab} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Nombre de la Marca *</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1">Nombre de la Marca *</label>
                 <input
                   type="text"
                   required
                   placeholder="Ej: Nike, L'Oréal..."
                   value={brandName}
                   onChange={(e) => setBrandName(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold focus:ring-2 focus:ring-purple-400 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Contacto / Brand Manager</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1">Contacto / Brand Manager</label>
                 <input
                   type="text"
                   placeholder="Ej: María López (Marketing)"
                   value={contactName}
                   onChange={(e) => setContactName(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold focus:ring-2 focus:ring-purple-400 outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Tipo de Trato</label>
+                  <label className="block text-xs font-bold text-slate-600 mb-1">Tipo de Trato</label>
                   <select
                     value={dealType}
                     onChange={(e) => setDealType(e.target.value as any)}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-extrabold focus:ring-2 focus:ring-purple-400 outline-none"
                   >
                     <option value="Pago">Pago Comercial</option>
                     <option value="Canje">Canje de Producto</option>
@@ -1042,12 +1044,12 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
                 {dealType === 'Pago' ? (
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Monto y Moneda</label>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Monto y Moneda</label>
                     <div className="flex gap-1">
                       <select
                         value={currency}
                         onChange={(e) => setCurrency(e.target.value as any)}
-                        className="px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold"
+                        className="px-2 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-extrabold"
                       >
                         <option value="USD">$ USD</option>
                         <option value="PEN">S/ PEN</option>
@@ -1057,26 +1059,26 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                         placeholder="Monto"
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold"
                       />
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Plazo estimado</label>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Plazo estimado</label>
                     <input
                       type="text"
                       disabled
                       value="Entrega Directa"
-                      className="w-full px-3.5 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-500 font-semibold"
+                      className="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-2xl text-xs text-slate-500 font-extrabold"
                     />
                   </div>
                 )}
               </div>
 
-              {/* ENTREGABLES */}
+              {/* ENTREGABLES RESTAURADOS */}
               <div className="space-y-2 pt-2 border-t border-slate-100">
-                <label className="block text-xs font-semibold text-slate-700">Entregables Requeridos *</label>
+                <label className="block text-xs font-bold text-slate-700">Entregables Requeridos *</label>
                 {deliverableError && <p className="text-[11px] text-rose-500 font-bold">{deliverableError}</p>}
                 
                 <div className="grid grid-cols-3 gap-2">
@@ -1088,35 +1090,35 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                     { label: 'YouTube', key: 'youtube' },
                     { label: 'Evento', key: 'evento' }
                   ].map((item) => (
-                    <div key={item.key} className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
-                      <span className="text-[11px] font-semibold text-slate-600">{item.label}</span>
+                    <div key={item.key} className="flex items-center justify-between px-2.5 py-2 bg-slate-50 rounded-2xl border border-slate-200/80">
+                      <span className="text-[11px] font-bold text-slate-600">{item.label}</span>
                       <input
                         type="number"
                         min="0"
                         value={(deliverables as any)[item.key]}
                         onChange={(e) => setDeliverables({ ...deliverables, [item.key]: Number(e.target.value) })}
-                        className="w-10 text-center py-0.5 bg-white border border-slate-300 rounded-md text-xs font-bold"
+                        className="w-10 text-center py-1 bg-white border border-slate-300 rounded-xl text-xs font-black text-slate-800"
                       />
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* UGC TOGGLE */}
+              {/* OPCIONES UGC RESTAURADAS */}
               <div className="pt-2 border-t border-slate-100">
                 <label className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={isUgc}
                     onChange={(e) => setIsUgc(e.target.checked)}
-                    className="rounded text-purple-600 focus:ring-purple-500"
+                    className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500"
                   />
-                  <span className="text-xs font-bold text-purple-700">⚡ Es Contenido UGC (User Generated Content)</span>
+                  <span className="text-xs font-extrabold text-purple-700">⚡ Es Contenido UGC (User Generated Content)</span>
                 </label>
               </div>
 
               {isUgc && (
-                <div className="p-3 bg-purple-50/50 rounded-2xl border border-purple-100 space-y-2">
+                <div className="p-3 bg-purple-50/60 rounded-2xl border border-purple-100 space-y-2.5">
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="block text-[10px] font-bold text-slate-600 mb-1">Derechos Uso</label>
@@ -1124,7 +1126,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                         type="text"
                         value={usageRightsDays}
                         onChange={(e) => setUsageRightsDays(e.target.value)}
-                        className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs"
+                        className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold"
                       />
                     </div>
                     <div>
@@ -1133,7 +1135,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                         type="text"
                         value={categoryExclusivity}
                         onChange={(e) => setCategoryExclusivity(e.target.value)}
-                        className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs"
+                        className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold"
                       />
                     </div>
                   </div>
@@ -1144,13 +1146,13 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 <button
                   type="button"
                   onClick={() => setShowNewColabModal(false)}
-                  className="px-4 py-2 bg-slate-100 text-slate-600 font-bold text-xs rounded-xl"
+                  className="px-4 py-2.5 bg-slate-100 text-slate-600 font-bold text-xs rounded-xl"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold text-xs rounded-xl shadow-md"
+                  className="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-black text-xs rounded-xl shadow-md transition"
                 >
                   Guardar Colaboración
                 </button>
@@ -1160,7 +1162,72 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         </div>
       )}
 
-      {/* MODAL: INFO DETALLADA DE COLABORACIÓN */}
+      {/* MODAL CAMBIAR ESTADO ORGANIZADO POR ETAPAS */}
+      {statusModalColab && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-3xl max-w-lg w-full space-y-4 shadow-2xl border border-purple-100 max-h-[85vh] overflow-y-auto">
+            <h3 className="font-black text-slate-800 text-base flex items-center gap-2">
+              <span>⚙️</span> <span>Cambiar Estado - {statusModalColab.brand}</span>
+            </h3>
+            <p className="text-xs text-slate-500 font-medium">Selecciona el nuevo estado dentro de la secuencia habilitada:</p>
+
+            {statusErrorMsg && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl font-bold">
+                ⚠️ {statusErrorMsg}
+              </div>
+            )}
+
+            <div className="space-y-4 max-h-96 overflow-y-auto pr-1">
+              {CAMPAIGN_STAGES.map((stg) => (
+                <div key={stg.stage} className="space-y-1.5">
+                  <div className="flex items-center space-x-2 px-1">
+                    <span className="text-sm">{stg.icon}</span>
+                    <span className="text-xs font-black text-purple-800 uppercase tracking-wider">{stg.stage}</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-1.5">
+                    {stg.statuses.map((st) => {
+                      const isCurrent = statusModalColab.status === st;
+                      const hasTimestamp = statusModalColab.statusHistory?.[st];
+
+                      return (
+                        <button
+                          key={st}
+                          onClick={() => handleStrictStatusChange(statusModalColab, st)}
+                          className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold transition flex items-center justify-between border ${
+                            isCurrent
+                              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-transparent shadow-md'
+                              : 'bg-slate-50 hover:bg-purple-50/80 text-slate-700 border-slate-100'
+                          }`}
+                        >
+                          <div className="flex flex-col">
+                            <span>{st}</span>
+                            {hasTimestamp && (
+                              <span className={`text-[10px] font-semibold ${isCurrent ? 'text-purple-100' : 'text-purple-600'}`}>
+                                🕒 {hasTimestamp}
+                              </span>
+                            )}
+                          </div>
+                          {isCurrent && <span className="text-xs font-black">✓ Actual</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setStatusModalColab(null)}
+              className="w-full py-2.5 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200 transition"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DETALLES DE COLABORACIÓN */}
       {infoModalColab && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl border border-purple-100">
@@ -1216,50 +1283,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         </div>
       )}
 
-      {/* MODAL: AVANZAR ESTADO */}
-      {statusModalColab && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl border border-purple-100 max-h-[85vh] overflow-y-auto">
-            <h3 className="font-black text-slate-800 text-base">⚙️ Cambiar Estado - {statusModalColab.brand}</h3>
-            <p className="text-xs text-slate-500">Selecciona el nuevo estado siguiendo la secuencia requerida:</p>
-
-            {statusErrorMsg && (
-              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl font-medium">
-                {statusErrorMsg}
-              </div>
-            )}
-
-            <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
-              {STATUS_SEQUENCE.map((st) => {
-                const isCurrent = statusModalColab.status === st;
-                return (
-                  <button
-                    key={st}
-                    onClick={() => handleStrictStatusChange(statusModalColab, st)}
-                    className={`w-full text-left px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between ${
-                      isCurrent
-                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-sm'
-                        : 'bg-slate-50 hover:bg-purple-50 text-slate-700'
-                    }`}
-                  >
-                    <span>{st}</span>
-                    {isCurrent && <span>✓ Actual</span>}
-                  </button>
-                );
-              })}
-            </div>
-
-            <button
-              onClick={() => setStatusModalColab(null)}
-              className="w-full py-2.5 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl"
-            >
-              Cerrar
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: CONFIRMAR BORRADO */}
+      {/* MODAL BORRADO */}
       {colabToDelete && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-4 shadow-2xl border border-rose-100 text-center">
@@ -1280,77 +1304,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 Sí, Eliminar
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL CREAR EVENTO / TAREA GENERAL */}
-      {createType === 'evento' && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl border border-purple-100">
-            <h2 className="text-base font-bold text-slate-800">📅 Crear Evento</h2>
-            <form onSubmit={handleCreateSubmit} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Título del Evento *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ej: Entrega de borrador..."
-                  value={createTitle}
-                  onChange={(e) => setCreateTitle(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Marca / Proyecto</label>
-                <input
-                  type="text"
-                  placeholder="Ej: Adidas"
-                  value={createBrand}
-                  onChange={(e) => setCreateBrand(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Fecha</label>
-                  <input
-                    type="date"
-                    value={createDate}
-                    onChange={(e) => setCreateDate(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Hora</label>
-                  <input
-                    type="time"
-                    value={createTime}
-                    onChange={(e) => setCreateTime(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setCreateType(null)}
-                  className="px-4 py-2.5 bg-slate-100 text-slate-600 font-bold text-xs rounded-xl"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold text-xs rounded-xl shadow-md"
-                >
-                  Guardar y Sincronizar
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
