@@ -50,18 +50,16 @@ const GoogleIcon = () => (
   </svg>
 );
 
-export const STATUS_SEQUENCE = [
+export const MAIN_LINEAL_SEQUENCE = [
   'Campaña Recibida',
   'Campaña Aceptada',
   'Brief Recibido',
   'Guión Enviado',
   'Guión Aprobado',
-  'Guión Observado',
   'En Grabación',
   'En Edición',
   'Video Entregado',
   'Video Aprobado',
-  'Video Observado',
   'Video Publicado',
   'Factura Enviada',
   'Factura por Cobrar',
@@ -80,7 +78,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [user, setUser] = useState<any>(null);
   const [displayName, setDisplayName] = useState<string>('');
   const [daysRemaining, setDaysRemaining] = useState<number>(7);
-  const [activeTab, setActiveTab] = useState<'home' | 'colabs' | 'calendar' | 'tasks' | 'income' | 'mediakit'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'colabs' | 'calendar' | 'tasks' | 'income' | 'mediakit'>('colabs');
 
   const [colabFilter, setColabFilter] = useState<string>('todas');
   const [showNewColabModal, setShowNewColabModal] = useState(false);
@@ -88,7 +86,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [statusModalColab, setStatusModalColab] = useState<any>(null);
   const [statusErrorMsg, setStatusErrorMsg] = useState('');
 
-  // FORMULARIO DE NUEVA COLABORACIÓN (ESTILOS PILLS RESTAURADOS)
   const [brandName, setBrandName] = useState('');
   const [contactName, setContactName] = useState('');
   const [dealType, setDealType] = useState<'Pago' | 'Canje'>('Pago');
@@ -427,26 +424,58 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     return 0;
   };
 
+  // LÓGICA DE VALIDACIÓN ESTRICTA Y BLOQUEO ENTRE ESTADOS
   const handleStrictStatusChange = (colab: any, targetStatus: string) => {
     setStatusErrorMsg('');
     const currentStatus = colab.status;
 
-    if (currentStatus === 'Campaña Cancelada' && targetStatus !== 'Campaña Cancelada') {
-      setStatusErrorMsg('La campaña está cancelada. No es posible avanzar a otras etapas.');
+    if (currentStatus === targetStatus) return;
+
+    // 1. VALIDACIÓN: Campaña Cancelada
+    if (currentStatus === 'Campaña Cancelada') {
+      setStatusErrorMsg('La campaña está cancelada. No es posible cambiar a otros estados.');
       return;
     }
+
     if (targetStatus === 'Campaña Cancelada') {
+      if (currentStatus === 'Factura Cobrada') {
+        setStatusErrorMsg('No se puede cancelar una campaña que ya ha sido totalmente cobrada.');
+        return;
+      }
       applyStatusUpdate(colab.id, targetStatus);
       return;
     }
 
-    const currentIdx = STATUS_SEQUENCE.indexOf(currentStatus);
-    const targetIdx = STATUS_SEQUENCE.indexOf(targetStatus);
-
-    if (currentIdx !== -1 && targetIdx !== -1 && targetIdx > currentIdx + 1) {
-      setStatusErrorMsg(`No puedes saltar de "${currentStatus}" a "${targetStatus}". El flujo debe ser secuencial.`);
-      return;
+    // 2. VALIDACIÓN: Guión Observado
+    if (currentStatus === 'Guión Observado') {
+      const allowedFromGuionObservado = ['Guión Enviado', 'Guión Aprobado', 'Campaña Cancelada'];
+      if (!allowedFromGuionObservado.includes(targetStatus)) {
+        setStatusErrorMsg('El guión está observado. Debes corregirlo ("Guión Enviado") o aprobarlo ("Guión Aprobado") antes de avanzar a Producción.');
+        return;
+      }
     }
+
+    // 3. VALIDACIÓN: Video Observado
+    if (currentStatus === 'Video Observado') {
+      const allowedFromVideoObservado = ['En Edición', 'Video Entregado', 'Video Aprobado', 'Campaña Cancelada'];
+      if (!allowedFromVideoObservado.includes(targetStatus)) {
+        setStatusErrorMsg('El video está observado. Debes corregir la edición o aprobarlo ("Video Aprobado") antes de publicar o facturar.');
+        return;
+      }
+    }
+
+    // 4. VALIDACIÓN: Avance Paso a Paso (Secuencia lineal)
+    const currentIdx = MAIN_LINEAL_SEQUENCE.indexOf(currentStatus);
+    const targetIdx = MAIN_LINEAL_SEQUENCE.indexOf(targetStatus);
+
+    if (currentIdx !== -1 && targetIdx !== -1) {
+      if (targetIdx > currentIdx + 1) {
+        const nextRequiredStatus = MAIN_LINEAL_SEQUENCE[currentIdx + 1];
+        setStatusErrorMsg(`No puedes saltar directo a "${targetStatus}". El siguiente paso obligatorio es "${nextRequiredStatus}".`);
+        return;
+      }
+    }
+
     applyStatusUpdate(colab.id, targetStatus);
   };
 
@@ -983,7 +1012,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
       </main>
 
-      {/* MODAL NUEVA COLABORACIÓN EXACTO (IMÁGENES 4 Y 5) */}
+      {/* MODAL NUEVA COLABORACIÓN */}
       {showNewColabModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-3xl max-w-lg w-full space-y-4 shadow-2xl border border-purple-100 max-h-[92vh] overflow-y-auto relative">
@@ -1083,7 +1112,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 </div>
               )}
 
-              {/* CONTENIDOS A ENTREGAR CON CONTADORES - / + */}
               <div className="space-y-2 pt-1">
                 <div className="flex justify-between items-center">
                   <label className="text-xs font-bold text-slate-700">Contenidos a Entregar (Mínimo 1) *</label>
@@ -1126,7 +1154,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 </div>
               </div>
 
-              {/* TOGGLE SWITCH DE UGC RESTAURADO */}
               <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
                 <div>
                   <span className="text-xs font-black text-purple-800 flex items-center gap-1">
@@ -1145,7 +1172,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 </button>
               </div>
 
-              {/* DETALLES UGC EXTENDIDOS (IMAGEN 5) */}
               {isUgc && (
                 <div className="p-3.5 bg-purple-50/50 rounded-2xl border border-purple-100/80 space-y-3">
                   <div>
@@ -1233,7 +1259,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         </div>
       )}
 
-      {/* MODAL CAMBIAR ESTADO EXACTO (IMÁGENES 1 Y 2) */}
+      {/* MODAL CAMBIAR ESTADO CON MENSAJES Y BLOQUEOS EN ROJO */}
       {statusModalColab && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl border border-purple-100 max-h-[88vh] overflow-y-auto relative">
@@ -1252,7 +1278,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
             <p className="text-xs font-bold text-slate-700">Avanzar Estado Paso a Paso:</p>
 
             {statusErrorMsg && (
-              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl font-bold">
+              <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-2xl font-bold shadow-2xs">
                 ⚠️ {statusErrorMsg}
               </div>
             )}
