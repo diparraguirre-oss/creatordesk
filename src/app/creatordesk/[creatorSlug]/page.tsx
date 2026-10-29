@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
 
-// Componentes SVG vectoriales
+// Iconos Vectoriales
 const InstagramIcon = () => (
   <svg className="w-4 h-4 text-pink-600 inline-block" fill="currentColor" viewBox="0 0 24 24">
     <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
@@ -78,7 +78,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [user, setUser] = useState<any>(null);
   const [displayName, setDisplayName] = useState<string>('');
   const [daysRemaining, setDaysRemaining] = useState<number>(7);
-  const [activeTab, setActiveTab] = useState<'home' | 'colabs' | 'calendar' | 'tasks' | 'income' | 'mediakit'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'colabs' | 'calendar' | 'tasks' | 'income' | 'mediakit'>('calendar');
 
   const [colabFilter, setColabFilter] = useState<string>('todas');
   const [showNewColabModal, setShowNewColabModal] = useState(false);
@@ -104,12 +104,18 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
   const [pendingTask, setPendingTask] = useState<any>(null);
   const [showTaskConfirmModal, setShowTaskConfirmModal] = useState(false);
-  const [colabToDelete, setColabToDelete] = useState<any>(null);
 
-  const [selectedDay, setSelectedDay] = useState<number>(31);
+  // NAVEGACIÓN Y ESTADOS DEL CALENDARIO
+  const [currentDate, setCurrentDate] = useState(new Date(2026, 9, 29)); // Octubre 2026
+  const [selectedDay, setSelectedDay] = useState<number>(29);
   const [calendarFilter, setCalendarFilter] = useState<'todos' | 'grabacion' | 'entrega' | 'reunion' | 'pago' | 'google'>('todos');
-  const [showCreateDropdown, setShowCreateDropdown] = useState(false);
-  const [createType, setCreateType] = useState<'evento' | 'tarea' | 'citas' | null>(null);
+  const [showCreateEventModal, setShowCreateEventModal] = useState(false);
+
+  const [createTitle, setCreateTitle] = useState('');
+  const [createBrand, setCreateBrand] = useState('');
+  const [createDate, setCreateDate] = useState('2026-10-29');
+  const [createTime, setCreateTime] = useState('10:00');
+  const [createCategory, setCreateCategory] = useState<'grabacion' | 'entrega' | 'reunion' | 'pago'>('grabacion');
 
   const [isGoogleConnected, setIsGoogleConnected] = useState(false);
 
@@ -118,10 +124,58 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     { id: 'e3', title: 'Fecha Estimada de Cobro Factura', brand: 'Adidas', date: '2026-11-05', time: '09:00 hs', category: 'pago', source: 'creator' }
   ]);
 
+  const [tasks, setTasks] = useState([
+    { id: 't1', title: 'Enviar guión para aprobación a Adidas', brand: 'Adidas', status: 'pendiente', category: 'Grabar' },
+    { id: 't2', title: 'Grabar video de unboxing cosméticos', brand: 'Aurelia', status: 'pendiente', category: 'Grabar' },
+    { id: 't3', title: 'Revisar contrato de patrocinio', brand: 'Loto Spa', status: 'completada', category: 'Manual' }
+  ]);
+
+  const [colabs, setColabs] = useState([
+    {
+      id: '1',
+      brand: 'Adidas Originals',
+      contactName: 'Carlos Mendoza (Brand Manager)',
+      dealType: 'Pago',
+      currency: 'USD',
+      amount: 1500,
+      paymentDays: 30,
+      status: 'Guión Aprobado',
+      isUgc: false,
+      deliverables: [
+        { type: 'instagram', label: '2 Reels' },
+        { type: 'instagram', label: '3 Stories' },
+        { type: 'evento', label: '1 Evento' }
+      ],
+      statusHistory: { 'Campaña Recibida': '20/10/2026, 10:15 hs', 'Guión Aprobado': '28/10/2026, 23:10 hs' }
+    },
+    {
+      id: '2',
+      brand: 'Aurelia Cosmetics',
+      contactName: 'Valeria Silva (PR Lead)',
+      dealType: 'Canje',
+      currency: 'PEN',
+      amount: 0,
+      paymentDays: 0,
+      status: 'En Grabación',
+      isUgc: true,
+      ugcDetails: { usageRightsDays: '30 Días de Uso en Pauta', includesRawFootage: true, allowAdsUsage: true, categoryExclusivity: 'Sin Exclusividad', deliveryFormat: 'Vertical 9:16 (Reels/TikTok)' },
+      deliverables: [
+        { type: 'tiktok', label: '1 TikTok UGC' },
+        { type: 'facebook', label: '1 Post' }
+      ],
+      statusHistory: { 'Campaña Recibida': '22/10/2026, 09:00 hs', 'En Grabación': '27/10/2026, 16:45 hs' }
+    }
+  ]);
+
   const fetchGoogleCalendarEvents = async (token: string) => {
     try {
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      const startOfMonth = new Date(year, month, 1).toISOString();
+      const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
+
       const response = await fetch(
-        'https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&timeMin=2026-10-01T00:00:00Z&timeMax=2026-11-30T23:59:59Z',
+        `https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&timeMin=${startOfMonth}&timeMax=${endOfMonth}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -175,72 +229,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       setIsGoogleConnected(true);
       fetchGoogleCalendarEvents(googleToken);
     }
-  }, []);
-
-  const handleGoogleAuthConnect = () => {
-    if (isGoogleConnected) {
-      localStorage.removeItem('google_access_token');
-      setIsGoogleConnected(false);
-      setCalendarEvents(calendarEvents.filter(e => e.source !== 'google'));
-      return;
-    }
-
-    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '780704611551-jiq915ec0qnp95c9t30ptkakblu209l1.apps.googleusercontent.com';
-    const redirectUri = typeof window !== 'undefined' ? `${window.location.origin}/api/auth/google/callback` : '';
-    const scope = encodeURIComponent('https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar');
-
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}&prompt=consent`;
-    window.location.href = authUrl;
-  };
-
-  const [createTitle, setCreateTitle] = useState('');
-  const [createBrand, setCreateBrand] = useState('');
-  const [createDate, setCreateDate] = useState('2026-10-31');
-  const [createTime, setCreateTime] = useState('10:00');
-  const [createCategory, setCreateCategory] = useState<'grabacion' | 'entrega' | 'reunion' | 'pago'>('grabacion');
-
-  const [tasks, setTasks] = useState([
-    { id: 't1', title: 'Enviar guión para aprobación a Adidas', brand: 'Adidas', status: 'pendiente', category: 'Grabar' },
-    { id: 't2', title: 'Grabar video de unboxing cosméticos', brand: 'Aurelia', status: 'pendiente', category: 'Grabar' },
-    { id: 't3', title: 'Revisar contrato de patrocinio', brand: 'Loto Spa', status: 'completada', category: 'Manual' }
-  ]);
-
-  const [colabs, setColabs] = useState([
-    {
-      id: '1',
-      brand: 'Adidas Originals',
-      contactName: 'Carlos Mendoza (Brand Manager)',
-      dealType: 'Pago',
-      currency: 'USD',
-      amount: 1500,
-      paymentDays: 30,
-      status: 'Guión Aprobado',
-      isUgc: false,
-      deliverables: [
-        { type: 'instagram', label: '2 Reels' },
-        { type: 'instagram', label: '3 Stories' },
-        { type: 'evento', label: '1 Evento' }
-      ],
-      statusHistory: { 'Campaña Recibida': '20/10/2026, 10:15 hs', 'Guión Aprobado': '28/10/2026, 23:10 hs' }
-    },
-    {
-      id: '2',
-      brand: 'Aurelia Cosmetics',
-      contactName: 'Valeria Silva (PR Lead)',
-      dealType: 'Canje',
-      currency: 'PEN',
-      amount: 0,
-      paymentDays: 0,
-      status: 'En Grabación',
-      isUgc: true,
-      ugcDetails: { usageRightsDays: '30 Días de Uso en Pauta', includesRawFootage: true, allowAdsUsage: true, categoryExclusivity: 'Sin Exclusividad', deliveryFormat: 'Vertical 9:16 (Reels/TikTok)' },
-      deliverables: [
-        { type: 'tiktok', label: '1 TikTok UGC' },
-        { type: 'facebook', label: '1 Post' }
-      ],
-      statusHistory: { 'Campaña Recibida': '22/10/2026, 09:00 hs', 'En Grabación': '27/10/2026, 16:45 hs' }
-    }
-  ]);
+  }, [currentDate]);
 
   useEffect(() => {
     const localUser = localStorage.getItem('creatordesk_user');
@@ -290,7 +279,92 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     pendingBreakdownText = 'Sin cobros pendientes';
   }
 
-  // ACCIÓN AL ACTIVAR EL CHECKBOX DE UNA TAREA PENDIENTE
+  const handleGoogleAuthConnect = () => {
+    if (isGoogleConnected) {
+      localStorage.removeItem('google_access_token');
+      setIsGoogleConnected(false);
+      setCalendarEvents(calendarEvents.filter(e => e.source !== 'google'));
+      return;
+    }
+
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '780704611551-jiq915ec0qnp95c9t30ptkakblu209l1.apps.googleusercontent.com';
+    const redirectUri = typeof window !== 'undefined' ? `${window.location.origin}/api/auth/google/callback` : '';
+    const scope = encodeURIComponent('https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar');
+
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}&prompt=consent`;
+    window.location.href = authUrl;
+  };
+
+  // NAVEGACIÓN DE MESES
+  const handlePrevMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
+
+  // CÁLCULO DINÁMICO DE DÍAS DEL MES
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const monthName = currentDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+
+  const firstDayOfMonth = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const handleCreateEventSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createTitle) return;
+
+    const googleToken = localStorage.getItem('google_access_token');
+
+    if (googleToken) {
+      try {
+        const startDateTime = `${createDate}T${createTime}:00-05:00`;
+        const endHour = parseInt(createTime.split(':')[0] || '10') + 1;
+        const formattedEndHour = endHour < 10 ? `0${endHour}` : `${endHour}`;
+        const endDateTime = `${createDate}T${formattedEndHour}:${createTime.split(':')[1] || '00'}:00-05:00`;
+
+        await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${googleToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            summary: `${createTitle} (${createBrand || 'CreatorDesk'})`,
+            description: `Evento creado desde CreatorDesk.`,
+            start: { dateTime: startDateTime, timeZone: 'America/Lima' },
+            end: { dateTime: endDateTime, timeZone: 'America/Lima' }
+          })
+        });
+
+        fetchGoogleCalendarEvents(googleToken);
+      } catch (err) {
+        console.error('Error enviando evento a Google:', err);
+      }
+    }
+
+    const newEvt = {
+      id: String(Date.now()),
+      title: createTitle,
+      brand: createBrand || 'General',
+      date: createDate,
+      time: `${createTime} hs`,
+      category: createCategory,
+      source: 'creator'
+    };
+
+    setCalendarEvents(prev => [...prev, newEvt]);
+    setShowCreateEventModal(false);
+    setCreateTitle('');
+    setCreateBrand('');
+  };
+
+  const handleDeleteEvent = (eventId: string) => {
+    setCalendarEvents(calendarEvents.filter(e => e.id !== eventId));
+  };
+
   const handleTaskCheckboxClick = (task: any) => {
     if (task.status === 'completada') return;
     setPendingTask(task);
@@ -302,10 +376,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     setTasks(tasks.map(t => t.id === pendingTask.id ? { ...t, status: 'completada' } : t));
     setShowTaskConfirmModal(false);
     setPendingTask(null);
-  };
-
-  const handleDeleteEvent = (eventId: string) => {
-    setCalendarEvents(calendarEvents.filter(e => e.id !== eventId));
   };
 
   const totalDeliverablesCount = deliverables.reels + deliverables.tiktoks + deliverables.stories + deliverables.facebook + deliverables.youtube + deliverables.evento;
@@ -464,7 +534,9 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
   if (loading) return null;
 
-  const selectedDateStr = `2026-10-${selectedDay < 10 ? '0' + selectedDay : selectedDay}`;
+  const monthFormatted = month + 1 < 10 ? `0${month + 1}` : `${month + 1}`;
+  const dayFormatted = selectedDay < 10 ? `0${selectedDay}` : `${selectedDay}`;
+  const selectedDateStr = `${year}-${monthFormatted}-${dayFormatted}`;
   const dayEvents = calendarEvents.filter(e => e.date === selectedDateStr && (calendarFilter === 'todos' || e.category === calendarFilter));
 
   return (
@@ -533,7 +605,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               </div>
             </div>
 
-            {/* SECCIÓN TAREAS PRIORITARIAS DE HOY */}
             <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-2xl space-y-4 shadow-xl shadow-purple-100/40">
               <div className="flex items-center justify-between px-1">
                 <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -621,7 +692,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               {filteredColabs.map((c) => {
                 const currentStageIdx = getStageIndex(c.status);
                 const lastDateWithTime = c.statusHistory?.[c.status] || getExactNowTimestamp();
-                const isNegociacion = currentStageIdx === 0;
 
                 return (
                   <div
@@ -659,20 +729,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                           <div className="px-3 py-1 bg-pink-50 border border-pink-200 rounded-xl text-xs font-black text-pink-600">
                             Canje Directo
                           </div>
-                        )}
-
-                        {isNegociacion && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setColabToDelete(c);
-                            }}
-                            className="p-1.5 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 transition"
-                            title="Borrar colaboración"
-                          >
-                            <TrashIcon />
-                          </button>
                         )}
                       </div>
                     </div>
@@ -753,7 +809,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           </div>
         )}
 
-        {/* AGENDA Y GOOGLE CALENDAR */}
+        {/* AGENDA & GOOGLE CALENDAR REDISEÑADO CON NAVEGACIÓN Y TAMAÑO AMPLIADO */}
         {activeTab === 'calendar' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -762,42 +818,27 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 <p className="text-xs text-slate-500">Gestión unificada de eventos, tareas y citas sincronizadas en tiempo real.</p>
               </div>
 
-              <div className="flex items-center space-x-3 relative">
+              <div className="flex items-center space-x-3">
                 <button
                   onClick={handleGoogleAuthConnect}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border shadow-sm ${
-                    isGoogleConnected ? 'bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100' : 'bg-white border-slate-200 text-slate-700'
+                  className={`px-3.5 py-2.5 rounded-2xl text-xs font-bold transition flex items-center gap-2 border shadow-sm ${
+                    isGoogleConnected ? 'bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                   }`}
                 >
                   <GoogleIcon />
                   <span>{isGoogleConnected ? '✓ Google Conectado' : 'Conectar Google'}</span>
                 </button>
 
-                <div className="relative">
-                  <button
-                    onClick={() => setShowCreateDropdown(!showCreateDropdown)}
-                    className="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-extrabold text-xs rounded-2xl shadow-lg transition flex items-center gap-2"
-                  >
-                    <span className="text-base font-black">+</span>
-                    <span>Crear</span>
-                    <span className="text-[10px]">▼</span>
-                  </button>
-
-                  {showCreateDropdown && (
-                    <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-2xl border border-purple-100 py-2 z-50">
-                      <button
-                        onClick={() => { setCreateType('evento'); setShowCreateDropdown(false); }}
-                        className="w-full text-left px-4 py-2.5 hover:bg-purple-50 text-xs font-bold text-slate-700 flex items-center gap-2.5"
-                      >
-                        <span className="text-base">📅</span>
-                        <div>
-                          <div>Evento</div>
-                          <p className="text-[10px] text-slate-400 font-normal">Sincroniza con Google Calendar</p>
-                        </div>
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <button
+                  onClick={() => {
+                    setCreateDate(`${year}-${monthFormatted}-${dayFormatted}`);
+                    setShowCreateEventModal(true);
+                  }}
+                  className="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-extrabold text-xs rounded-2xl shadow-lg transition flex items-center gap-2"
+                >
+                  <span className="text-base font-black">+</span>
+                  <span>Crear Evento</span>
+                </button>
               </div>
             </div>
 
@@ -822,70 +863,94 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <h3 className="font-extrabold text-slate-800 text-base">October 2026</h3>
-                  <div className="text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-xl border border-purple-100">
-                    Hoy: 29 de Octubre
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-7 text-center text-[11px] font-bold text-slate-400 py-1">
-                  <span>Dom</span><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span>
-                </div>
-
-                <div className="grid grid-cols-7 gap-1.5">
-                  {[...Array(4)].map((_, i) => (
-                    <div key={`empty-${i}`} className="h-12 rounded-2xl bg-slate-50/30 opacity-20"></div>
-                  ))}
-
-                  {[...Array(31)].map((_, i) => {
-                    const dayNum = i + 1;
-                    const dateStr = `2026-10-${dayNum < 10 ? '0' + dayNum : dayNum}`;
-                    const dayEvts = calendarEvents.filter(e => e.date === dateStr);
-                    const isSelected = selectedDay === dayNum;
-
-                    return (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+              <div className="lg:col-span-2 bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div className="flex items-center space-x-3">
                       <button
-                        key={dayNum}
-                        onClick={() => setSelectedDay(dayNum)}
-                        className={`h-12 rounded-2xl flex flex-col items-center justify-between p-1.5 text-xs font-bold border ${
-                          isSelected ? 'bg-gradient-to-tr from-purple-500 to-pink-500 text-white border-transparent shadow-md ring-2 ring-purple-300' : 'bg-white/60 border-slate-100 text-slate-700 hover:bg-slate-50'
-                        }`}
+                        onClick={handlePrevMonth}
+                        className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-purple-100 text-slate-600 hover:text-purple-700 font-black text-sm flex items-center justify-center transition"
                       >
-                        <span>{dayNum}</span>
-                        {dayEvts.length > 0 && (
-                          <div className="flex items-center gap-0.5">
-                            {dayEvts.some(e => e.source === 'google') && <span className="w-1.5 h-1.5 rounded-full bg-sky-400"></span>}
-                            {dayEvts.some(e => e.source === 'creator') && <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-pink-500'}`}></span>}
-                          </div>
-                        )}
+                        ◄
                       </button>
-                    );
-                  })}
+                      <h3 className="font-black text-slate-800 text-base capitalize">{monthName}</h3>
+                      <button
+                        onClick={handleNextMonth}
+                        className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-purple-100 text-slate-600 hover:text-purple-700 font-black text-sm flex items-center justify-center transition"
+                      >
+                        ►
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={() => setCurrentDate(new Date(2026, 9, 29))}
+                      className="text-xs font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 px-3 py-1 rounded-xl border border-purple-100 transition"
+                    >
+                      Hoy: 29 Oct
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-7 text-center text-[11px] font-bold text-slate-400 py-2">
+                    <span>Dom</span><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span>
+                  </div>
+
+                  {/* GRID AMPLIADO PARA OCUPAR EL ESPACIO VERTICAL */}
+                  <div className="grid grid-cols-7 gap-2">
+                    {[...Array(firstDayOfMonth)].map((_, i) => (
+                      <div key={`empty-${i}`} className="h-16 sm:h-20 rounded-2xl bg-slate-50/20 opacity-20"></div>
+                    ))}
+
+                    {[...Array(daysInMonth)].map((_, i) => {
+                      const dayNum = i + 1;
+                      const dayStr = dayNum < 10 ? `0${dayNum}` : `${dayNum}`;
+                      const dateStr = `${year}-${monthFormatted}-${dayStr}`;
+                      const dayEvts = calendarEvents.filter(e => e.date === dateStr);
+                      const isSelected = selectedDay === dayNum;
+
+                      return (
+                        <button
+                          key={dayNum}
+                          onClick={() => setSelectedDay(dayNum)}
+                          className={`h-16 sm:h-20 rounded-2xl flex flex-col items-center justify-between p-2 text-xs font-bold border transition-all ${
+                            isSelected
+                              ? 'bg-gradient-to-tr from-purple-500 to-pink-500 text-white border-transparent shadow-lg ring-2 ring-purple-300'
+                              : 'bg-white/70 border-slate-100 text-slate-700 hover:bg-purple-50/60'
+                          }`}
+                        >
+                          <span className="text-xs font-black">{dayNum}</span>
+                          {dayEvts.length > 0 && (
+                            <div className="flex items-center gap-1">
+                              {dayEvts.some(e => e.source === 'google') && <span className="w-2 h-2 rounded-full bg-sky-400"></span>}
+                              {dayEvts.some(e => e.source === 'creator') && <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white' : 'bg-pink-500'}`}></span>}
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
-              <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl flex flex-col justify-between">
+              <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl flex flex-col justify-between h-full">
                 <div className="space-y-4">
                   <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
                     <div>
-                      <h3 className="font-extrabold text-slate-800 text-base">Día {selectedDay} de Octubre</h3>
-                      <p className="text-[11px] text-slate-400 font-medium">{dayEvents.length} elementos programados</p>
+                      <h3 className="font-extrabold text-slate-800 text-base">Día {selectedDay} de {monthName}</h3>
+                      <p className="text-[11px] text-slate-400 font-medium">{dayEvents.length} eventos programados</p>
                     </div>
                     <span className="text-xl">📅</span>
                   </div>
 
-                  <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+                  <div className="space-y-2.5 max-h-[420px] overflow-y-auto pr-1">
                     {dayEvents.length === 0 ? (
-                      <div className="p-8 text-center space-y-2">
+                      <div className="p-12 text-center space-y-2">
                         <span className="text-3xl block">☕</span>
                         <p className="text-xs text-slate-400 font-medium">No hay eventos para este día.</p>
                       </div>
                     ) : (
                       dayEvents.map((evt) => (
-                        <div key={evt.id} className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 relative">
+                        <div key={evt.id} className="p-3.5 bg-slate-50/90 border border-slate-200/80 rounded-2xl space-y-2 relative">
                           <div className="flex items-start justify-between">
                             <div className="space-y-0.5">
                               {getCategoryBadge(evt.category)}
@@ -904,13 +969,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                     )}
                   </div>
                 </div>
-
-                <button
-                  onClick={() => setCreateType('evento')}
-                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition"
-                >
-                  + Agregar Evento
-                </button>
               </div>
             </div>
           </div>
@@ -964,7 +1022,110 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
       </main>
 
-      {/* MODAL CONFIRMACIÓN DE MARCAR TAREA COMO REALIZADA (IMAGEN 01) */}
+      {/* MODAL UNIFICADO Y ESTILIZADO DE CREAR EVENTO */}
+      {showCreateEventModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl border border-purple-100 relative">
+            <button
+              onClick={() => setShowCreateEventModal(false)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 text-base font-bold"
+            >
+              ✕
+            </button>
+
+            <h2 className="text-base font-black text-slate-800 flex items-center gap-2">
+              <span>📅</span> <span>Crear Nuevo Evento</span>
+            </h2>
+
+            <form onSubmit={handleCreateEventSubmit} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Título del Evento *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej: Grabar Reel Unboxing..."
+                  value={createTitle}
+                  onChange={(e) => setCreateTitle(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs font-semibold outline-none focus:border-purple-300"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Marca / Proyecto</label>
+                <input
+                  type="text"
+                  placeholder="Ej: Adidas, Personal..."
+                  value={createBrand}
+                  onChange={(e) => setCreateBrand(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs font-semibold outline-none focus:border-purple-300"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Fecha</label>
+                  <input
+                    type="date"
+                    required
+                    value={createDate}
+                    onChange={(e) => setCreateDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Hora</label>
+                  <input
+                    type="time"
+                    required
+                    value={createTime}
+                    onChange={(e) => setCreateTime(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Categoría de Evento</label>
+                <select
+                  value={createCategory}
+                  onChange={(e) => setCreateCategory(e.target.value as any)}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none"
+                >
+                  <option value="grabacion">🎥 Grabación</option>
+                  <option value="entrega">📤 Entrega / Borrador</option>
+                  <option value="reunion">👥 Reunión</option>
+                  <option value="pago">💵 Pago & Facturación</option>
+                </select>
+              </div>
+
+              {isGoogleConnected && (
+                <p className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 pt-1">
+                  ✓ Sincronización activa: El evento se guardará en tu Google Calendar automáticamente.
+                </p>
+              )}
+
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateEventModal(false)}
+                  className="px-4 py-2.5 bg-slate-100 text-slate-600 font-bold text-xs rounded-xl"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-extrabold text-xs rounded-xl shadow-md transition"
+                >
+                  Guardar Evento
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CONFIRMACIÓN TAREA */}
       {showTaskConfirmModal && pendingTask && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-3xl max-w-sm w-full text-center space-y-4 shadow-2xl border border-purple-100">
