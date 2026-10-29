@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
 
-// Iconos vectoriales
+// Componentes SVG vectoriales
 const InstagramIcon = () => (
   <svg className="w-4 h-4 text-pink-600 inline-block" fill="currentColor" viewBox="0 0 24 24">
     <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
@@ -56,10 +56,12 @@ export const STATUS_SEQUENCE = [
   'Brief Recibido',
   'Guión Enviado',
   'Guión Aprobado',
+  'Guión Observado',
   'En Grabación',
   'En Edición',
   'Video Entregado',
   'Video Aprobado',
+  'Video Observado',
   'Video Publicado',
   'Factura Enviada',
   'Factura por Cobrar',
@@ -77,9 +79,8 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [displayName, setDisplayName] = useState<string>('');
-  const [isExpired, setIsExpired] = useState(false);
   const [daysRemaining, setDaysRemaining] = useState<number>(7);
-  const [activeTab, setActiveTab] = useState<'home' | 'colabs' | 'calendar' | 'tasks' | 'income' | 'mediakit'>('colabs');
+  const [activeTab, setActiveTab] = useState<'home' | 'colabs' | 'calendar' | 'tasks' | 'income' | 'mediakit'>('home');
 
   const [colabFilter, setColabFilter] = useState<string>('todas');
   const [showNewColabModal, setShowNewColabModal] = useState(false);
@@ -87,6 +88,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [statusModalColab, setStatusModalColab] = useState<any>(null);
   const [statusErrorMsg, setStatusErrorMsg] = useState('');
 
+  // FORMULARIO DE NUEVA COLABORACIÓN (ESTILOS PILLS RESTAURADOS)
   const [brandName, setBrandName] = useState('');
   const [contactName, setContactName] = useState('');
   const [dealType, setDealType] = useState<'Pago' | 'Canje'>('Pago');
@@ -96,11 +98,11 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [deliverables, setDeliverables] = useState({ reels: 0, tiktoks: 0, stories: 0, facebook: 0, youtube: 0, evento: 0 });
 
   const [isUgc, setIsUgc] = useState(false);
-  const [usageRightsDays, setUsageRightsDays] = useState('30 días');
+  const [usageRightsDays, setUsageRightsDays] = useState('30 Días de Uso en Pauta');
   const [includesRawFootage, setIncludesRawFootage] = useState(false);
   const [allowAdsUsage, setAllowAdsUsage] = useState(true);
   const [categoryExclusivity, setCategoryExclusivity] = useState('Sin Exclusividad');
-  const [deliveryFormat, setDeliveryFormat] = useState('Vertical 9:16 (Móvil)');
+  const [deliveryFormat, setDeliveryFormat] = useState('Vertical 9:16 (Reels/TikTok)');
   const [deliverableError, setDeliverableError] = useState('');
 
   const [pendingTask, setPendingTask] = useState<any>(null);
@@ -234,7 +236,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       paymentDays: 0,
       status: 'En Grabación',
       isUgc: true,
-      ugcDetails: { usageRightsDays: '60 días', includesRawFootage: true, allowAdsUsage: true, categoryExclusivity: '30 días en Cosméticos', deliveryFormat: 'Vertical 9:16 (Móvil)' },
+      ugcDetails: { usageRightsDays: '30 Días de Uso en Pauta', includesRawFootage: true, allowAdsUsage: true, categoryExclusivity: 'Sin Exclusividad', deliveryFormat: 'Vertical 9:16 (Reels/TikTok)' },
       deliverables: [
         { type: 'tiktok', label: '1 TikTok UGC' },
         { type: 'facebook', label: '1 Post' }
@@ -258,7 +260,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         const now = new Date();
         const days = Math.ceil((expiresTime.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
         setDaysRemaining(days);
-        if (days <= 0) setIsExpired(true);
       } catch (e) {
         setUser({ email: 'Creador Activo', slug: params?.creatorSlug || 'creador' });
         setDisplayName('Creador');
@@ -362,13 +363,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     setShowTaskConfirmModal(true);
   };
 
-  const handleConfirmTaskDone = () => {
-    if (!pendingTask) return;
-    setTasks(tasks.map(t => t.id === pendingTask.id ? { ...t, status: 'completada' } : t));
-    setShowTaskConfirmModal(false);
-    setPendingTask(null);
-  };
-
   const handleDeleteColab = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setColabs(colabs.filter(c => c.id !== id));
@@ -394,12 +388,12 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     if (!brandName) return;
 
     const delivArray = [];
-    if (deliverables.reels > 0) delivArray.push({ type: 'instagram', label: `${deliverables.reels} Reels` });
-    if (deliverables.stories > 0) delivArray.push({ type: 'instagram', label: `${deliverables.stories} Stories` });
-    if (deliverables.tiktoks > 0) delivArray.push({ type: 'tiktok', label: `${deliverables.tiktoks} TikToks` });
+    if (deliverables.reels > 0) delivArray.push({ type: 'instagram', label: `${deliverables.reels} Instagram Reel` });
+    if (deliverables.stories > 0) delivArray.push({ type: 'instagram', label: `${deliverables.stories} IG Stories` });
+    if (deliverables.tiktoks > 0) delivArray.push({ type: 'tiktok', label: `${deliverables.tiktoks} TikTok` });
     if (deliverables.facebook > 0) delivArray.push({ type: 'facebook', label: `${deliverables.facebook} Facebook` });
     if (deliverables.youtube > 0) delivArray.push({ type: 'youtube', label: `${deliverables.youtube} YouTube` });
-    if (deliverables.evento > 0) delivArray.push({ type: 'evento', label: `${deliverables.evento} Eventos` });
+    if (deliverables.evento > 0) delivArray.push({ type: 'evento', label: `${deliverables.evento} Evento` });
 
     const newColabObj = {
       id: String(Date.now()),
@@ -433,7 +427,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     return 0;
   };
 
-  // VALIDACIÓN DE SECUENCIA ESTRICTA (PASO A PASO)
   const handleStrictStatusChange = (colab: any, targetStatus: string) => {
     setStatusErrorMsg('');
     const currentStatus = colab.status;
@@ -446,20 +439,12 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       applyStatusUpdate(colab.id, targetStatus);
       return;
     }
-    if (currentStatus === 'Guión Observado' && targetStatus !== 'Guión Aprobado' && targetStatus !== 'Guión Enviado') {
-      setStatusErrorMsg('El guión está observado. Debes corregirlo y aprobarlo antes de pasar a producción.');
-      return;
-    }
-    if (currentStatus === 'Video Observado' && targetStatus !== 'Video Aprobado' && targetStatus !== 'En Edición') {
-      setStatusErrorMsg('El video está observado. Debes aprobarlo antes de poder publicarlo o facturar.');
-      return;
-    }
 
     const currentIdx = STATUS_SEQUENCE.indexOf(currentStatus);
     const targetIdx = STATUS_SEQUENCE.indexOf(targetStatus);
 
     if (currentIdx !== -1 && targetIdx !== -1 && targetIdx > currentIdx + 1) {
-      setStatusErrorMsg(`No puedes saltar de "${currentStatus}" a "${targetStatus}". El flujo debe ser secuencial: ${STATUS_SEQUENCE[currentIdx + 1]}.`);
+      setStatusErrorMsg(`No puedes saltar de "${currentStatus}" a "${targetStatus}". El flujo debe ser secuencial.`);
       return;
     }
     applyStatusUpdate(colab.id, targetStatus);
@@ -714,7 +699,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                               setColabToDelete(c);
                             }}
                             className="p-1.5 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 transition"
-                            title="Borrar colaboración (Solo en Negociación)"
+                            title="Borrar colaboración"
                           >
                             <TrashIcon />
                           </button>
@@ -998,151 +983,237 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
       </main>
 
-      {/* MODAL NUEVA COLABORACIÓN CON ESTILOS RESTAURADOS */}
+      {/* MODAL NUEVA COLABORACIÓN EXACTO (IMÁGENES 4 Y 5) */}
       {showNewColabModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl border border-purple-100 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
-              <span>🤝</span> <span>Nueva Colaboración</span>
-            </h2>
-            <form onSubmit={handleCreateColab} className="space-y-3.5">
+          <div className="bg-white p-6 rounded-3xl max-w-lg w-full space-y-4 shadow-2xl border border-purple-100 max-h-[92vh] overflow-y-auto relative">
+            <button
+              onClick={() => setShowNewColabModal(false)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 text-base font-bold"
+            >
+              ✕
+            </button>
+
+            <h2 className="text-base font-black text-slate-800">Nueva Colaboración</h2>
+
+            <form onSubmit={handleCreateColab} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">Nombre de la Marca *</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Nombre de la Marca *</label>
                 <input
                   type="text"
                   required
-                  placeholder="Ej: Nike, L'Oréal..."
+                  placeholder="Ej: Nike, Samsung..."
                   value={brandName}
                   onChange={(e) => setBrandName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold focus:ring-2 focus:ring-purple-400 outline-none"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs font-medium outline-none focus:border-purple-300"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">Contacto / Brand Manager</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Persona / Punto de Contacto</label>
                 <input
                   type="text"
-                  placeholder="Ej: María López (Marketing)"
+                  placeholder="Ej: Andrea Badillo (Marketing Manager)"
                   value={contactName}
                   onChange={(e) => setContactName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold focus:ring-2 focus:ring-purple-400 outline-none"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs font-medium outline-none focus:border-purple-300"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">Tipo de Trato</label>
-                  <select
-                    value={dealType}
-                    onChange={(e) => setDealType(e.target.value as any)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-extrabold focus:ring-2 focus:ring-purple-400 outline-none"
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Tipo de Acuerdo</label>
+                <div className="grid grid-cols-2 gap-2 bg-purple-50/40 p-1.5 rounded-2xl border border-purple-100/60">
+                  <button
+                    type="button"
+                    onClick={() => setDealType('Pago')}
+                    className={`py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                      dealType === 'Pago' ? 'bg-purple-100/80 text-purple-700 border border-purple-200 shadow-2xs' : 'text-slate-500'
+                    }`}
                   >
-                    <option value="Pago">Pago Comercial</option>
-                    <option value="Canje">Canje de Producto</option>
-                  </select>
+                    <span>💵</span> <span>Pago</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDealType('Canje')}
+                    className={`py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                      dealType === 'Canje' ? 'bg-purple-100/80 text-purple-700 border border-purple-200 shadow-2xs' : 'text-slate-500'
+                    }`}
+                  >
+                    <span>🎁</span> <span>Canje / Producto</span>
+                  </button>
                 </div>
-
-                {dealType === 'Pago' ? (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1">Monto y Moneda</label>
-                    <div className="flex gap-1">
-                      <select
-                        value={currency}
-                        onChange={(e) => setCurrency(e.target.value as any)}
-                        className="px-2 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-extrabold"
-                      >
-                        <option value="USD">$ USD</option>
-                        <option value="PEN">S/ PEN</option>
-                      </select>
-                      <input
-                        type="number"
-                        placeholder="Monto"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1">Plazo estimado</label>
-                    <input
-                      type="text"
-                      disabled
-                      value="Entrega Directa"
-                      className="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-2xl text-xs text-slate-500 font-extrabold"
-                    />
-                  </div>
-                )}
               </div>
 
-              {/* ENTREGABLES RESTAURADOS */}
-              <div className="space-y-2 pt-2 border-t border-slate-100">
-                <label className="block text-xs font-bold text-slate-700">Entregables Requeridos *</label>
+              {dealType === 'Pago' && (
+                <div className="space-y-3 p-3 bg-purple-50/30 rounded-2xl border border-purple-100/60">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Moneda de Pago</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCurrency('USD')}
+                        className={`py-2 rounded-xl text-xs font-bold transition ${
+                          currency === 'USD' ? 'bg-emerald-100/80 text-emerald-800 border border-emerald-200' : 'bg-white text-slate-600 border border-slate-200'
+                        }`}
+                      >
+                        $ Dólares (USD)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCurrency('PEN')}
+                        className={`py-2 rounded-xl text-xs font-bold transition ${
+                          currency === 'PEN' ? 'bg-emerald-100/80 text-emerald-800 border border-emerald-200' : 'bg-white text-slate-600 border border-slate-200'
+                        }`}
+                      >
+                        S/ Soles (PEN)
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Monto Total a Cobrar</label>
+                    <input
+                      type="number"
+                      placeholder="0.00"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-bold outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* CONTENIDOS A ENTREGAR CON CONTADORES - / + */}
+              <div className="space-y-2 pt-1">
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-bold text-slate-700">Contenidos a Entregar (Mínimo 1) *</label>
+                  <span className="text-[10px] text-purple-600 font-bold">Seleccionados: {totalDeliverablesCount}</span>
+                </div>
                 {deliverableError && <p className="text-[11px] text-rose-500 font-bold">{deliverableError}</p>}
-                
-                <div className="grid grid-cols-3 gap-2">
+
+                <div className="grid grid-cols-2 gap-2">
                   {[
-                    { label: 'Reels', key: 'reels' },
-                    { label: 'TikToks', key: 'tiktoks' },
-                    { label: 'Stories', key: 'stories' },
-                    { label: 'Facebook', key: 'facebook' },
-                    { label: 'YouTube', key: 'youtube' },
-                    { label: 'Evento', key: 'evento' }
+                    { label: 'Instagram Reel', key: 'reels', icon: <InstagramIcon /> },
+                    { label: 'IG Stories', key: 'stories', icon: <InstagramIcon /> },
+                    { label: 'TikTok', key: 'tiktoks', icon: <TikTokIcon /> },
+                    { label: 'Facebook', key: 'facebook', icon: <FacebookIcon /> },
+                    { label: 'YouTube', key: 'youtube', icon: <YoutubeIcon /> },
+                    { label: 'Evento', key: 'evento', icon: <EventIcon /> }
                   ].map((item) => (
-                    <div key={item.key} className="flex items-center justify-between px-2.5 py-2 bg-slate-50 rounded-2xl border border-slate-200/80">
-                      <span className="text-[11px] font-bold text-slate-600">{item.label}</span>
-                      <input
-                        type="number"
-                        min="0"
-                        value={(deliverables as any)[item.key]}
-                        onChange={(e) => setDeliverables({ ...deliverables, [item.key]: Number(e.target.value) })}
-                        className="w-10 text-center py-1 bg-white border border-slate-300 rounded-xl text-xs font-black text-slate-800"
-                      />
+                    <div key={item.key} className="flex items-center justify-between px-3 py-2 bg-slate-50/80 rounded-2xl border border-slate-200/80">
+                      <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                        {item.icon} <span>{item.label}</span>
+                      </span>
+                      <div className="flex items-center space-x-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setDeliverables({ ...deliverables, [item.key]: Math.max(0, (deliverables as any)[item.key] - 1) })}
+                          className="w-6 h-6 rounded-md bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center hover:bg-slate-300"
+                        >
+                          -
+                        </button>
+                        <span className="text-xs font-black text-slate-800 w-4 text-center">{(deliverables as any)[item.key]}</span>
+                        <button
+                          type="button"
+                          onClick={() => setDeliverables({ ...deliverables, [item.key]: (deliverables as any)[item.key] + 1 })}
+                          className="w-6 h-6 rounded-md bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center hover:bg-slate-300"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* OPCIONES UGC RESTAURADAS */}
-              <div className="pt-2 border-t border-slate-100">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={isUgc}
-                    onChange={(e) => setIsUgc(e.target.checked)}
-                    className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500"
-                  />
-                  <span className="text-xs font-extrabold text-purple-700">⚡ Es Contenido UGC (User Generated Content)</span>
-                </label>
+              {/* TOGGLE SWITCH DE UGC RESTAURADO */}
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-black text-purple-800 flex items-center gap-1">
+                    ⚡ ¿Es contenido UGC?
+                  </span>
+                  <p className="text-[10px] text-slate-400">Contenido creado exclusivamente para uso de la marca</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsUgc(!isUgc)}
+                  className={`w-11 h-6 rounded-full transition-colors p-1 flex items-center ${
+                    isUgc ? 'bg-purple-600 justify-end' : 'bg-slate-300 justify-start'
+                  }`}
+                >
+                  <div className="w-4 h-4 rounded-full bg-white shadow-md"></div>
+                </button>
               </div>
 
+              {/* DETALLES UGC EXTENDIDOS (IMAGEN 5) */}
               {isUgc && (
-                <div className="p-3 bg-purple-50/60 rounded-2xl border border-purple-100 space-y-2.5">
+                <div className="p-3.5 bg-purple-50/50 rounded-2xl border border-purple-100/80 space-y-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 mb-1">Derechos de Uso Comercial (Licencia)</label>
+                    <select
+                      value={usageRightsDays}
+                      onChange={(e) => setUsageRightsDays(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none"
+                    >
+                      <option value="30 Días de Uso en Pauta">30 Días de Uso en Pauta</option>
+                      <option value="60 Días de Uso en Pauta">60 Días de Uso en Pauta</option>
+                      <option value="90 Días de Uso en Pauta">90 Días de Uso en Pauta</option>
+                      <option value="Uso Orgánico Indefinido">Uso Orgánico Indefinido</option>
+                    </select>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-600 mb-1">Derechos Uso</label>
-                      <input
-                        type="text"
-                        value={usageRightsDays}
-                        onChange={(e) => setUsageRightsDays(e.target.value)}
-                        className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold"
-                      />
+                      <label className="block text-[10px] font-bold text-slate-600 mb-1">Formato de Entrega</label>
+                      <select
+                        value={deliveryFormat}
+                        onChange={(e) => setDeliveryFormat(e.target.value)}
+                        className="w-full px-2.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none"
+                      >
+                        <option value="Vertical 9:16 (Reels/TikTok)">Vertical 9:16 (Reels/TikTok)</option>
+                        <option value="Horizontal 16:9 (YouTube/Web)">Horizontal 16:9 (YouTube/Web)</option>
+                      </select>
                     </div>
+
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-600 mb-1">Exclusividad</label>
-                      <input
-                        type="text"
+                      <label className="block text-[10px] font-bold text-slate-600 mb-1">Exclusividad de Creador</label>
+                      <select
                         value={categoryExclusivity}
                         onChange={(e) => setCategoryExclusivity(e.target.value)}
-                        className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold"
-                      />
+                        className="w-full px-2.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none"
+                      >
+                        <option value="Sin Exclusividad">Sin Exclusividad</option>
+                        <option value="15 Días en Categoría">15 Días en Categoría</option>
+                        <option value="30 Días en Categoría">30 Días en Categoría</option>
+                      </select>
                     </div>
+                  </div>
+
+                  <div className="flex flex-col space-y-1.5 pt-1">
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includesRawFootage}
+                        onChange={(e) => setIncludesRawFootage(e.target.checked)}
+                        className="rounded text-purple-600 focus:ring-purple-400"
+                      />
+                      <span className="text-[11px] font-medium text-slate-700">Incluye Raw Footage (Material sin editar)</span>
+                    </label>
+
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={allowAdsUsage}
+                        onChange={(e) => setAllowAdsUsage(e.target.checked)}
+                        className="rounded text-purple-600 focus:ring-purple-400"
+                      />
+                      <span className="text-[11px] font-medium text-slate-700">Uso para Pauta / Ads (Whitelisting)</span>
+                    </label>
                   </div>
                 </div>
               )}
 
-              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-end space-x-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowNewColabModal(false)}
@@ -1152,7 +1223,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-black text-xs rounded-xl shadow-md transition"
+                  className="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-extrabold text-xs rounded-xl shadow-md transition"
                 >
                   Guardar Colaboración
                 </button>
@@ -1162,14 +1233,23 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         </div>
       )}
 
-      {/* MODAL CAMBIAR ESTADO ORGANIZADO POR ETAPAS */}
+      {/* MODAL CAMBIAR ESTADO EXACTO (IMÁGENES 1 Y 2) */}
       {statusModalColab && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-6 rounded-3xl max-w-lg w-full space-y-4 shadow-2xl border border-purple-100 max-h-[85vh] overflow-y-auto">
-            <h3 className="font-black text-slate-800 text-base flex items-center gap-2">
-              <span>⚙️</span> <span>Cambiar Estado - {statusModalColab.brand}</span>
-            </h3>
-            <p className="text-xs text-slate-500 font-medium">Selecciona el nuevo estado dentro de la secuencia habilitada:</p>
+          <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl border border-purple-100 max-h-[88vh] overflow-y-auto relative">
+            <button
+              onClick={() => setStatusModalColab(null)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 text-base font-bold"
+            >
+              ✕
+            </button>
+
+            <div>
+              <h3 className="font-black text-slate-800 text-base">{statusModalColab.brand}</h3>
+              <p className="text-xs font-bold text-purple-600">Estado Actual: {statusModalColab.status}</p>
+            </div>
+
+            <p className="text-xs font-bold text-slate-700">Avanzar Estado Paso a Paso:</p>
 
             {statusErrorMsg && (
               <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl font-bold">
@@ -1177,12 +1257,12 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               </div>
             )}
 
-            <div className="space-y-4 max-h-96 overflow-y-auto pr-1">
+            <div className="space-y-4 max-h-80 overflow-y-auto pr-1">
               {CAMPAIGN_STAGES.map((stg) => (
                 <div key={stg.stage} className="space-y-1.5">
-                  <div className="flex items-center space-x-2 px-1">
-                    <span className="text-sm">{stg.icon}</span>
-                    <span className="text-xs font-black text-purple-800 uppercase tracking-wider">{stg.stage}</span>
+                  <div className="flex items-center space-x-1.5">
+                    <span className="text-xs">{stg.icon}</span>
+                    <span className="text-xs font-bold text-purple-700">{stg.stage}</span>
                   </div>
 
                   <div className="grid grid-cols-1 gap-1.5">
@@ -1194,21 +1274,18 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                         <button
                           key={st}
                           onClick={() => handleStrictStatusChange(statusModalColab, st)}
-                          className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold transition flex items-center justify-between border ${
+                          className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition flex items-center justify-between border ${
                             isCurrent
-                              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-transparent shadow-md'
-                              : 'bg-slate-50 hover:bg-purple-50/80 text-slate-700 border-slate-100'
+                              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-transparent shadow-md font-bold'
+                              : 'bg-slate-50/80 hover:bg-purple-50/60 text-slate-700 border-slate-100'
                           }`}
                         >
-                          <div className="flex flex-col">
-                            <span>{st}</span>
-                            {hasTimestamp && (
-                              <span className={`text-[10px] font-semibold ${isCurrent ? 'text-purple-100' : 'text-purple-600'}`}>
-                                🕒 {hasTimestamp}
-                              </span>
-                            )}
-                          </div>
-                          {isCurrent && <span className="text-xs font-black">✓ Actual</span>}
+                          <span>{st}</span>
+                          {hasTimestamp && (
+                            <span className={`text-[10px] ${isCurrent ? 'text-purple-100 font-bold' : 'text-purple-600 font-semibold'}`}>
+                              🕒 {hasTimestamp}
+                            </span>
+                          )}
                         </button>
                       );
                     })}
@@ -1219,15 +1296,15 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
             <button
               onClick={() => setStatusModalColab(null)}
-              className="w-full py-2.5 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200 transition"
+              className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition"
             >
-              Cerrar
+              Guardar y Cerrar
             </button>
           </div>
         </div>
       )}
 
-      {/* MODAL DETALLES DE COLABORACIÓN */}
+      {/* MODAL INFO DETALLADA */}
       {infoModalColab && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl border border-purple-100">
@@ -1279,31 +1356,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
             >
               Cerrar
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL BORRADO */}
-      {colabToDelete && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-4 shadow-2xl border border-rose-100 text-center">
-            <span className="text-3xl block">🗑️</span>
-            <h3 className="font-black text-slate-800 text-base">¿Eliminar {colabToDelete.brand}?</h3>
-            <p className="text-xs text-slate-500">Esta acción no se puede deshacer.</p>
-            <div className="flex items-center justify-center space-x-2 pt-2">
-              <button
-                onClick={() => setColabToDelete(null)}
-                className="px-4 py-2 bg-slate-100 text-slate-600 font-bold text-xs rounded-xl"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={(e) => handleDeleteColab(colabToDelete.id, e)}
-                className="px-4 py-2 bg-rose-600 text-white font-bold text-xs rounded-xl shadow-md"
-              >
-                Sí, Eliminar
-              </button>
-            </div>
           </div>
         </div>
       )}
