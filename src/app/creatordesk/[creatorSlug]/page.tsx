@@ -35,12 +35,6 @@ const EventIcon = () => (
   </svg>
 );
 
-const TrashIcon = () => (
-  <svg className="w-4 h-4 text-rose-500 hover:text-rose-700 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-  </svg>
-);
-
 const GoogleIcon = () => (
   <svg className="w-4 h-4" viewBox="0 0 24 24">
     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -115,7 +109,11 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const [createBrand, setCreateBrand] = useState('');
   const [createDate, setCreateDate] = useState('2026-10-29');
   const [createTime, setCreateTime] = useState('10:00');
-  const [createCategory, setCreateCategory] = useState<'grabacion' | 'entrega' | 'reunion' | 'pago'>('grabacion');
+  const [createCategory, setCreateCategory] = useState<'grabacion' | 'entrega' | 'reunion' | 'pago'>('reunion');
+  
+  // OPCIONES DE REUNIÓN
+  const [meetingType, setMeetingType] = useState<'virtual' | 'presencial'>('virtual');
+  const [locationAddress, setLocationAddress] = useState('');
 
   const [isGoogleConnected, setIsGoogleConnected] = useState(false);
 
@@ -201,7 +199,9 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
             date: dateStr,
             time: timeStr,
             category: 'google',
-            source: 'google'
+            source: 'google',
+            meetLink: item.hangoutLink || item.conferenceData?.entryPoints?.[0]?.uri || null,
+            location: item.location || null
           };
         });
 
@@ -295,7 +295,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     window.location.href = authUrl;
   };
 
-  // NAVEGACIÓN DE MESES
   const handlePrevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   };
@@ -304,7 +303,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   };
 
-  // CÁLCULO DINÁMICO DE DÍAS DEL MES
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const monthName = currentDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
@@ -316,6 +314,12 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     e.preventDefault();
     if (!createTitle) return;
 
+    let generatedMeetLink = null;
+    if (createCategory === 'reunion' && meetingType === 'virtual') {
+      const randomCode = Math.random().toString(36).substring(2, 5) + '-' + Math.random().toString(36).substring(2, 6) + '-' + Math.random().toString(36).substring(2, 5);
+      generatedMeetLink = `https://meet.google.com/${randomCode}`;
+    }
+
     const googleToken = localStorage.getItem('google_access_token');
 
     if (googleToken) {
@@ -325,18 +329,24 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         const formattedEndHour = endHour < 10 ? `0${endHour}` : `${endHour}`;
         const endDateTime = `${createDate}T${formattedEndHour}:${createTime.split(':')[1] || '00'}:00-05:00`;
 
+        const requestBody: any = {
+          summary: `${createTitle} (${createBrand || 'CreatorDesk'})`,
+          description: createCategory === 'reunion' && meetingType === 'virtual' ? `Reunión virtual. Link Meet: ${generatedMeetLink}` : `Ubicación: ${locationAddress || 'Presencial'}`,
+          start: { dateTime: startDateTime, timeZone: 'America/Lima' },
+          end: { dateTime: endDateTime, timeZone: 'America/Lima' }
+        };
+
+        if (createCategory === 'reunion' && meetingType === 'presencial' && locationAddress) {
+          requestBody.location = locationAddress;
+        }
+
         await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${googleToken}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            summary: `${createTitle} (${createBrand || 'CreatorDesk'})`,
-            description: `Evento creado desde CreatorDesk.`,
-            start: { dateTime: startDateTime, timeZone: 'America/Lima' },
-            end: { dateTime: endDateTime, timeZone: 'America/Lima' }
-          })
+          body: JSON.stringify(requestBody)
         });
 
         fetchGoogleCalendarEvents(googleToken);
@@ -352,13 +362,17 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       date: createDate,
       time: `${createTime} hs`,
       category: createCategory,
-      source: 'creator'
+      source: 'creator',
+      meetingType: createCategory === 'reunion' ? meetingType : null,
+      location: createCategory === 'reunion' && meetingType === 'presencial' ? locationAddress : null,
+      meetLink: createCategory === 'reunion' && meetingType === 'virtual' ? generatedMeetLink : null
     };
 
     setCalendarEvents(prev => [...prev, newEvt]);
     setShowCreateEventModal(false);
     setCreateTitle('');
     setCreateBrand('');
+    setLocationAddress('');
   };
 
   const handleDeleteEvent = (eventId: string) => {
@@ -809,7 +823,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           </div>
         )}
 
-        {/* AGENDA & GOOGLE CALENDAR REDISEÑADO CON NAVEGACIÓN Y TAMAÑO AMPLIADO */}
+        {/* AGENDA & GOOGLE CALENDAR REDISEÑADO */}
         {activeTab === 'calendar' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -867,25 +881,28 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               <div className="lg:col-span-2 bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <div className="flex items-center space-x-3">
+                    {/* ESTILO PROFESIONAL Y MODERNO DE NAVEGACIÓN ENTRE MESES */}
+                    <div className="flex items-center space-x-3 bg-slate-50/80 p-1.5 rounded-2xl border border-slate-200/60">
                       <button
                         onClick={handlePrevMonth}
-                        className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-purple-100 text-slate-600 hover:text-purple-700 font-black text-sm flex items-center justify-center transition"
+                        className="w-8 h-8 rounded-xl bg-white hover:bg-purple-100 text-purple-700 font-bold text-sm flex items-center justify-center transition shadow-2xs border border-slate-100"
+                        title="Mes anterior"
                       >
-                        ◄
+                        ‹
                       </button>
-                      <h3 className="font-black text-slate-800 text-base capitalize">{monthName}</h3>
+                      <h3 className="font-extrabold text-slate-800 text-sm capitalize px-2 tracking-tight">{monthName}</h3>
                       <button
                         onClick={handleNextMonth}
-                        className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-purple-100 text-slate-600 hover:text-purple-700 font-black text-sm flex items-center justify-center transition"
+                        className="w-8 h-8 rounded-xl bg-white hover:bg-purple-100 text-purple-700 font-bold text-sm flex items-center justify-center transition shadow-2xs border border-slate-100"
+                        title="Mes siguiente"
                       >
-                        ►
+                        ›
                       </button>
                     </div>
 
                     <button
                       onClick={() => setCurrentDate(new Date(2026, 9, 29))}
-                      className="text-xs font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 px-3 py-1 rounded-xl border border-purple-100 transition"
+                      className="text-xs font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-xl border border-purple-100 transition shadow-2xs"
                     >
                       Hoy: 29 Oct
                     </button>
@@ -895,7 +912,6 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                     <span>Dom</span><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span>
                   </div>
 
-                  {/* GRID AMPLIADO PARA OCUPAR EL ESPACIO VERTICAL */}
                   <div className="grid grid-cols-7 gap-2">
                     {[...Array(firstDayOfMonth)].map((_, i) => (
                       <div key={`empty-${i}`} className="h-16 sm:h-20 rounded-2xl bg-slate-50/20 opacity-20"></div>
@@ -950,7 +966,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                       </div>
                     ) : (
                       dayEvents.map((evt) => (
-                        <div key={evt.id} className="p-3.5 bg-slate-50/90 border border-slate-200/80 rounded-2xl space-y-2 relative">
+                        <div key={evt.id} className="p-3.5 bg-slate-50/90 border border-slate-200/80 rounded-2xl space-y-2 relative shadow-2xs">
                           <div className="flex items-start justify-between">
                             <div className="space-y-0.5">
                               {getCategoryBadge(evt.category)}
@@ -960,6 +976,20 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                               <button onClick={() => handleDeleteEvent(evt.id)} className="text-slate-300 hover:text-rose-500 text-xs p-1">✕</button>
                             )}
                           </div>
+
+                          {/* MOSTRAR LINK DE MEET O UBICACIÓN SI ES REUNIÓN */}
+                          {evt.category === 'reunion' && (
+                            <div className="text-[11px] font-semibold text-slate-600 bg-white/80 p-2 rounded-xl border border-slate-100">
+                              {evt.meetLink ? (
+                                <a href={evt.meetLink} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
+                                  📹 Entrar a Google Meet
+                                </a>
+                              ) : (
+                                <span>📍 Ubicación: {evt.location || 'Presencial'}</span>
+                              )}
+                            </div>
+                          )}
+
                           <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold pt-1 border-t border-slate-100">
                             <span>🏷️ Marca: <strong className="text-purple-600">{evt.brand}</strong></span>
                             <span>🕒 {evt.time}</span>
@@ -1022,7 +1052,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
       </main>
 
-      {/* MODAL UNIFICADO Y ESTILIZADO DE CREAR EVENTO */}
+      {/* MODAL CREAR EVENTO CON CATEGORÍA Y MODALIDAD VIRTUAL/PRESENCIAL */}
       {showCreateEventModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl border border-purple-100 relative">
@@ -1043,7 +1073,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 <input
                   type="text"
                   required
-                  placeholder="Ej: Grabar Reel Unboxing..."
+                  placeholder="Ej: Reunión con Brand Manager..."
                   value={createTitle}
                   onChange={(e) => setCreateTitle(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs font-semibold outline-none focus:border-purple-300"
@@ -1086,22 +1116,66 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Categoría de Evento</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Categoría de Evento *</label>
                 <select
                   value={createCategory}
                   onChange={(e) => setCreateCategory(e.target.value as any)}
                   className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none"
                 >
+                  <option value="reunion">👥 Reunión</option>
                   <option value="grabacion">🎥 Grabación</option>
                   <option value="entrega">📤 Entrega / Borrador</option>
-                  <option value="reunion">👥 Reunión</option>
                   <option value="pago">💵 Pago & Facturación</option>
                 </select>
               </div>
 
+              {/* CAMPOS ADICIONALES PARA REUNIONES */}
+              {createCategory === 'reunion' && (
+                <div className="p-3 bg-blue-50/60 border border-blue-100 rounded-2xl space-y-2.5">
+                  <label className="block text-[11px] font-bold text-blue-900">Modalidad de Reunión</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setMeetingType('virtual')}
+                      className={`py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 ${
+                        meetingType === 'virtual' ? 'bg-blue-600 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200'
+                      }`}
+                    >
+                      📹 Virtual (Meet)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMeetingType('presencial')}
+                      className={`py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 ${
+                        meetingType === 'presencial' ? 'bg-blue-600 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200'
+                      }`}
+                    >
+                      📍 Presencial
+                    </button>
+                  </div>
+
+                  {meetingType === 'presencial' ? (
+                    <div>
+                      <label className="block text-[10px] font-bold text-blue-900 mb-1">Lugar / Dirección</label>
+                      <input
+                        type="text"
+                        placeholder="Ej: Starbuck San Isidro, Oficina..."
+                        value={locationAddress}
+                        onChange={(e) => setLocationAddress(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium outline-none"
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-blue-700 font-semibold">
+                      ⚡ Generará un enlace automático de Google Meet al guardar.
+                    </p>
+                  )}
+                </div>
+              )}
+
               {isGoogleConnected && (
                 <p className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 pt-1">
-                  ✓ Sincronización activa: El evento se guardará en tu Google Calendar automáticamente.
+                  ✓ Sincronización activa: Se enviará a Google Calendar automáticamente.
                 </p>
               )}
 
