@@ -102,14 +102,15 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   // NAVEGACIÓN Y ESTADOS DEL CALENDARIO
   const [currentDate, setCurrentDate] = useState(new Date(2026, 9, 29)); // Octubre 2026
   const [selectedDay, setSelectedDay] = useState<number>(29);
-  const [calendarFilter, setCalendarFilter] = useState<'todos' | 'grabacion' | 'entrega' | 'reunion' | 'pago' | 'google'>('todos');
+  const [calendarFilter, setCalendarFilter] = useState<'todos' | 'grabacion' | 'entrega' | 'reunion' | 'pago'>('todos');
   const [showCreateEventModal, setShowCreateEventModal] = useState(false);
 
   const [createTitle, setCreateTitle] = useState('');
   const [createBrand, setCreateBrand] = useState('');
   const [createDate, setCreateDate] = useState('2026-10-29');
-  const [createTime, setCreateTime] = useState('10:00');
-  const [createCategory, setCreateCategory] = useState<'grabacion' | 'entrega' | 'reunion' | 'pago'>('reunion');
+  const [createStartTime, setCreateStartTime] = useState('10:00');
+  const [createEndTime, setCreateEndTime] = useState('11:00');
+  const [createCategory, setCreateCategory] = useState<'grabacion' | 'entrega' | 'reunion' | 'pago'>('grabacion');
   
   // OPCIONES DE REUNIÓN
   const [meetingType, setMeetingType] = useState<'virtual' | 'presencial'>('virtual');
@@ -117,10 +118,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
   const [isGoogleConnected, setIsGoogleConnected] = useState(false);
 
-  const [calendarEvents, setCalendarEvents] = useState<any[]>([
-    { id: 'e1', title: 'Grabar Reel para Adidas', brand: 'Adidas', date: '2026-10-28', time: '10:00 hs', category: 'grabacion', source: 'creator' },
-    { id: 'e3', title: 'Fecha Estimada de Cobro Factura', brand: 'Adidas', date: '2026-11-05', time: '09:00 hs', category: 'pago', source: 'creator' }
-  ]);
+  const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
 
   const [tasks, setTasks] = useState([
     { id: 't1', title: 'Enviar guión para aprobación a Adidas', brand: 'Adidas', status: 'pendiente', category: 'Grabar' },
@@ -189,16 +187,27 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       if (data.items) {
         const fetchedEvents = data.items.map((item: any) => {
           const startDateTime = item.start?.dateTime || item.start?.date || '';
+          const endDateTime = item.end?.dateTime || item.end?.date || '';
+          
           const dateStr = startDateTime.substring(0, 10);
-          const timeStr = startDateTime.includes('T') ? startDateTime.substring(11, 16) + ' hs' : 'Todo el día';
+          const startStr = startDateTime.includes('T') ? startDateTime.substring(11, 16) : '';
+          const endStr = endDateTime.includes('T') ? endDateTime.substring(11, 16) : '';
+          const timeRangeStr = startStr && endStr ? `${startStr} - ${endStr} hs` : 'Todo el día';
+
+          // MAPEO INTELIGENTE DE CATEGORÍAS SEGÚN PALABRAS CLAVE DEL TÍTULO
+          const summaryLower = (item.summary || '').toLowerCase();
+          let cat: 'grabacion' | 'entrega' | 'reunion' | 'pago' = 'reunion';
+          if (summaryLower.includes('grabar') || summaryLower.includes('rodaje') || summaryLower.includes('video')) cat = 'grabacion';
+          else if (summaryLower.includes('entrega') || summaryLower.includes('borrador') || summaryLower.includes('guion')) cat = 'entrega';
+          else if (summaryLower.includes('pago') || summaryLower.includes('factura') || summaryLower.includes('cobro')) cat = 'pago';
 
           return {
             id: `g_${item.id}`,
             title: item.summary || 'Evento de Google',
-            brand: 'Google Calendar',
+            brand: item.summary?.includes('(') ? item.summary.split('(')[1]?.replace(')', '') : 'Google',
             date: dateStr,
-            time: timeStr,
-            category: 'google',
+            time: timeRangeStr,
+            category: cat,
             source: 'google',
             meetLink: item.hangoutLink || item.conferenceData?.entryPoints?.[0]?.uri || null,
             location: item.location || null
@@ -208,13 +217,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         setIsGoogleConnected(true);
 
         setCalendarEvents(prev => {
-          const localOnly = prev.filter(localEvt => {
-            if (localEvt.source === 'google') return false;
-            return !fetchedEvents.some((gEvt: any) => 
-              gEvt.date === localEvt.date &&
-              gEvt.title.toLowerCase().includes(localEvt.title.toLowerCase().trim())
-            );
-          });
+          const localOnly = prev.filter(localEvt => localEvt.source !== 'google');
           return [...localOnly, ...fetchedEvents];
         });
       }
@@ -228,6 +231,8 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     if (googleToken) {
       setIsGoogleConnected(true);
       fetchGoogleCalendarEvents(googleToken);
+    } else {
+      setIsGoogleConnected(false);
     }
   }, [currentDate]);
 
@@ -283,7 +288,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
     if (isGoogleConnected) {
       localStorage.removeItem('google_access_token');
       setIsGoogleConnected(false);
-      setCalendarEvents(calendarEvents.filter(e => e.source !== 'google'));
+      setCalendarEvents([]);
       return;
     }
 
@@ -324,13 +329,11 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
     if (googleToken) {
       try {
-        const startDateTime = `${createDate}T${createTime}:00-05:00`;
-        const endHour = parseInt(createTime.split(':')[0] || '10') + 1;
-        const formattedEndHour = endHour < 10 ? `0${endHour}` : `${endHour}`;
-        const endDateTime = `${createDate}T${formattedEndHour}:${createTime.split(':')[1] || '00'}:00-05:00`;
+        const startDateTime = `${createDate}T${createStartTime}:00-05:00`;
+        const endDateTime = `${createDate}T${createEndTime}:00-05:00`;
 
         const requestBody: any = {
-          summary: `${createTitle} (${createBrand || 'CreatorDesk'})`,
+          summary: `${createTitle} (${createBrand || 'General'})`,
           description: createCategory === 'reunion' && meetingType === 'virtual' ? `Reunión virtual. Link Meet: ${generatedMeetLink}` : `Ubicación: ${locationAddress || 'Presencial'}`,
           start: { dateTime: startDateTime, timeZone: 'America/Lima' },
           end: { dateTime: endDateTime, timeZone: 'America/Lima' }
@@ -360,7 +363,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       title: createTitle,
       brand: createBrand || 'General',
       date: createDate,
-      time: `${createTime} hs`,
+      time: `${createStartTime} - ${createEndTime} hs`,
       category: createCategory,
       source: 'creator',
       meetingType: createCategory === 'reunion' ? meetingType : null,
@@ -538,11 +541,20 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const getCategoryBadge = (cat: string) => {
     switch (cat) {
       case 'grabacion': return <span className="px-2 py-0.5 bg-purple-100 text-purple-700 font-bold text-[10px] rounded-md border border-purple-200">🎥 Grabación</span>;
-      case 'entrega': return <span className="px-2 py-0.5 bg-pink-100 text-pink-700 font-bold text-[10px] rounded-md border border-pink-200">📤 Entrega</span>;
+      case 'entrega': return <span className="px-2 py-0.5 bg-pink-100 text-pink-700 font-bold text-[10px] rounded-md border border-pink-200">📤 Entrega / Borrador</span>;
       case 'reunion': return <span className="px-2 py-0.5 bg-blue-100 text-blue-700 font-bold text-[10px] rounded-md border border-blue-200">👥 Reunión</span>;
       case 'pago': return <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 font-bold text-[10px] rounded-md border border-emerald-200">💵 Pago</span>;
-      case 'google': return <span className="px-2 py-0.5 bg-sky-100 text-sky-800 font-bold text-[10px] rounded-md border border-sky-200 flex items-center gap-1"><GoogleIcon /> Google Calendar</span>;
       default: return <span className="px-2 py-0.5 bg-slate-100 text-slate-700 font-bold text-[10px] rounded-md">📌 Evento</span>;
+    }
+  };
+
+  const getCategoryLabel = (cat: string) => {
+    switch (cat) {
+      case 'grabacion': return 'Grabaciones';
+      case 'entrega': return 'Entregas / Borradores';
+      case 'reunion': return 'Reuniones';
+      case 'pago': return 'Pagos & Facturas';
+      default: return 'General';
     }
   };
 
@@ -551,7 +563,12 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
   const monthFormatted = month + 1 < 10 ? `0${month + 1}` : `${month + 1}`;
   const dayFormatted = selectedDay < 10 ? `0${selectedDay}` : `${selectedDay}`;
   const selectedDateStr = `${year}-${monthFormatted}-${dayFormatted}`;
-  const dayEvents = calendarEvents.filter(e => e.date === selectedDateStr && (calendarFilter === 'todos' || e.category === calendarFilter));
+
+  const dayEvents = calendarEvents.filter(e => {
+    const isSameDate = e.date === selectedDateStr;
+    const matchesFilter = calendarFilter === 'todos' || e.category === calendarFilter;
+    return isSameDate && matchesFilter;
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-indigo-100 text-slate-800 pb-28">
@@ -823,7 +840,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
           </div>
         )}
 
-        {/* AGENDA & GOOGLE CALENDAR REDISEÑADO */}
+        {/* AGENDA & GOOGLE CALENDAR REDISEÑADO CON VALIDACIÓN DE CONEXIÓN */}
         {activeTab === 'calendar' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -843,164 +860,192 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                   <span>{isGoogleConnected ? '✓ Google Conectado' : 'Conectar Google'}</span>
                 </button>
 
-                <button
-                  onClick={() => {
-                    setCreateDate(`${year}-${monthFormatted}-${dayFormatted}`);
-                    setShowCreateEventModal(true);
-                  }}
-                  className="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-extrabold text-xs rounded-2xl shadow-lg transition flex items-center gap-2"
-                >
-                  <span className="text-base font-black">+</span>
-                  <span>Crear Evento</span>
-                </button>
+                {isGoogleConnected && (
+                  <button
+                    onClick={() => {
+                      setCreateDate(`${year}-${monthFormatted}-${dayFormatted}`);
+                      setShowCreateEventModal(true);
+                    }}
+                    className="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-extrabold text-xs rounded-2xl shadow-lg transition flex items-center gap-2"
+                  >
+                    <span className="text-base font-black">+</span>
+                    <span>Crear Evento</span>
+                  </button>
+                )}
               </div>
             </div>
 
-            <div className="flex items-center space-x-2 bg-white/80 p-1.5 rounded-2xl border border-white/60 shadow-sm overflow-x-auto">
-              {[
-                { key: 'todos', label: 'Todos los Eventos' },
-                { key: 'grabacion', label: '🎥 Grabaciones' },
-                { key: 'entrega', label: '📤 Entregas / Borradores' },
-                { key: 'reunion', label: '👥 Reuniones' },
-                { key: 'pago', label: '💵 Pagos & Facturas' },
-                { key: 'google', label: '🌐 Google Calendar' }
-              ].map((f) => (
-                <button
-                  key={f.key}
-                  onClick={() => setCalendarFilter(f.key as any)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-                    calendarFilter === f.key ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
-              <div className="lg:col-span-2 bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    {/* ESTILO PROFESIONAL Y MODERNO DE NAVEGACIÓN ENTRE MESES */}
-                    <div className="flex items-center space-x-3 bg-slate-50/80 p-1.5 rounded-2xl border border-slate-200/60">
-                      <button
-                        onClick={handlePrevMonth}
-                        className="w-8 h-8 rounded-xl bg-white hover:bg-purple-100 text-purple-700 font-bold text-sm flex items-center justify-center transition shadow-2xs border border-slate-100"
-                        title="Mes anterior"
-                      >
-                        ‹
-                      </button>
-                      <h3 className="font-extrabold text-slate-800 text-sm capitalize px-2 tracking-tight">{monthName}</h3>
-                      <button
-                        onClick={handleNextMonth}
-                        className="w-8 h-8 rounded-xl bg-white hover:bg-purple-100 text-purple-700 font-bold text-sm flex items-center justify-center transition shadow-2xs border border-slate-100"
-                        title="Mes siguiente"
-                      >
-                        ›
-                      </button>
-                    </div>
-
+            {!isGoogleConnected ? (
+              /* MENSAJE CENTRAL CUANDO NO ESTÁ SINCRONIZADO */
+              <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-12 rounded-3xl text-center space-y-4 shadow-xl max-w-2xl mx-auto my-8">
+                <div className="w-16 h-16 bg-gradient-to-tr from-purple-100 to-pink-100 rounded-3xl flex items-center justify-center mx-auto text-3xl shadow-sm">
+                  📅
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-black text-slate-800">Sincronización de Agenda Requerida</h3>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                    Tu calendario se habilitará automáticamente una vez que conectes tu cuenta de <strong>Google Calendar</strong>. Esto te permitirá gestionar tus grabaciones, entregas, reuniones y cobros de manera bidireccional.
+                  </p>
+                </div>
+                <div className="pt-2">
+                  <button
+                    onClick={handleGoogleAuthConnect}
+                    className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-extrabold text-xs rounded-2xl shadow-lg transition inline-flex items-center gap-2"
+                  >
+                    <GoogleIcon />
+                    <span>Conectar Google Calendar Ahora</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* VISTA DE CALENDARIO SOLO SI ESTÁ CONECTADO */
+              <>
+                {/* FILTROS SUPERIORES CORREGIDOS SIN BOTÓN GOOGLE CALENDAR */}
+                <div className="flex items-center space-x-2 bg-white/80 p-1.5 rounded-2xl border border-white/60 shadow-sm overflow-x-auto">
+                  {[
+                    { key: 'todos', label: 'Todos los Eventos' },
+                    { key: 'grabacion', label: '🎥 Grabaciones' },
+                    { key: 'entrega', label: '📤 Entregas / Borradores' },
+                    { key: 'reunion', label: '👥 Reuniones' },
+                    { key: 'pago', label: '💵 Pagos & Facturas' }
+                  ].map((f) => (
                     <button
-                      onClick={() => setCurrentDate(new Date(2026, 9, 29))}
-                      className="text-xs font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-xl border border-purple-100 transition shadow-2xs"
+                      key={f.key}
+                      onClick={() => setCalendarFilter(f.key as any)}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                        calendarFilter === f.key ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                      }`}
                     >
-                      Hoy: 29 Oct
+                      {f.label}
                     </button>
-                  </div>
-
-                  <div className="grid grid-cols-7 text-center text-[11px] font-bold text-slate-400 py-2">
-                    <span>Dom</span><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span>
-                  </div>
-
-                  <div className="grid grid-cols-7 gap-2">
-                    {[...Array(firstDayOfMonth)].map((_, i) => (
-                      <div key={`empty-${i}`} className="h-16 sm:h-20 rounded-2xl bg-slate-50/20 opacity-20"></div>
-                    ))}
-
-                    {[...Array(daysInMonth)].map((_, i) => {
-                      const dayNum = i + 1;
-                      const dayStr = dayNum < 10 ? `0${dayNum}` : `${dayNum}`;
-                      const dateStr = `${year}-${monthFormatted}-${dayStr}`;
-                      const dayEvts = calendarEvents.filter(e => e.date === dateStr);
-                      const isSelected = selectedDay === dayNum;
-
-                      return (
-                        <button
-                          key={dayNum}
-                          onClick={() => setSelectedDay(dayNum)}
-                          className={`h-16 sm:h-20 rounded-2xl flex flex-col items-center justify-between p-2 text-xs font-bold border transition-all ${
-                            isSelected
-                              ? 'bg-gradient-to-tr from-purple-500 to-pink-500 text-white border-transparent shadow-lg ring-2 ring-purple-300'
-                              : 'bg-white/70 border-slate-100 text-slate-700 hover:bg-purple-50/60'
-                          }`}
-                        >
-                          <span className="text-xs font-black">{dayNum}</span>
-                          {dayEvts.length > 0 && (
-                            <div className="flex items-center gap-1">
-                              {dayEvts.some(e => e.source === 'google') && <span className="w-2 h-2 rounded-full bg-sky-400"></span>}
-                              {dayEvts.some(e => e.source === 'creator') && <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white' : 'bg-pink-500'}`}></span>}
-                            </div>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  ))}
                 </div>
-              </div>
 
-              <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl flex flex-col justify-between h-full">
-                <div className="space-y-4">
-                  <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+                  <div className="lg:col-span-2 bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl flex flex-col justify-between">
                     <div>
-                      <h3 className="font-extrabold text-slate-800 text-base">Día {selectedDay} de {monthName}</h3>
-                      <p className="text-[11px] text-slate-400 font-medium">{dayEvents.length} eventos programados</p>
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div className="flex items-center space-x-3 bg-slate-50/80 p-1.5 rounded-2xl border border-slate-200/60">
+                          <button
+                            onClick={handlePrevMonth}
+                            className="w-8 h-8 rounded-xl bg-white hover:bg-purple-100 text-purple-700 font-bold text-sm flex items-center justify-center transition shadow-2xs border border-slate-100"
+                            title="Mes anterior"
+                          >
+                            ‹
+                          </button>
+                          <h3 className="font-extrabold text-slate-800 text-sm capitalize px-2 tracking-tight">{monthName}</h3>
+                          <button
+                            onClick={handleNextMonth}
+                            className="w-8 h-8 rounded-xl bg-white hover:bg-purple-100 text-purple-700 font-bold text-sm flex items-center justify-center transition shadow-2xs border border-slate-100"
+                            title="Mes siguiente"
+                          >
+                            ›
+                          </button>
+                        </div>
+
+                        <button
+                          onClick={() => setCurrentDate(new Date(2026, 9, 29))}
+                          className="text-xs font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-xl border border-purple-100 transition shadow-2xs"
+                        >
+                          Hoy: 29 Oct
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-7 text-center text-[11px] font-bold text-slate-400 py-2">
+                        <span>Dom</span><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span>
+                      </div>
+
+                      <div className="grid grid-cols-7 gap-2">
+                        {[...Array(firstDayOfMonth)].map((_, i) => (
+                          <div key={`empty-${i}`} className="h-16 sm:h-20 rounded-2xl bg-slate-50/20 opacity-20"></div>
+                        ))}
+
+                        {[...Array(daysInMonth)].map((_, i) => {
+                          const dayNum = i + 1;
+                          const dayStr = dayNum < 10 ? `0${dayNum}` : `${dayNum}`;
+                          const dateStr = `${year}-${monthFormatted}-${dayStr}`;
+                          const dayEvts = calendarEvents.filter(e => {
+                            const isSameDate = e.date === dateStr;
+                            const matchesFilter = calendarFilter === 'todos' || e.category === calendarFilter;
+                            return isSameDate && matchesFilter;
+                          });
+                          const isSelected = selectedDay === dayNum;
+
+                          return (
+                            <button
+                              key={dayNum}
+                              onClick={() => setSelectedDay(dayNum)}
+                              className={`h-16 sm:h-20 rounded-2xl flex flex-col items-center justify-between p-2 text-xs font-bold border transition-all ${
+                                isSelected
+                                  ? 'bg-gradient-to-tr from-purple-500 to-pink-500 text-white border-transparent shadow-lg ring-2 ring-purple-300'
+                                  : 'bg-white/70 border-slate-100 text-slate-700 hover:bg-purple-50/60'
+                              }`}
+                            >
+                              <span className="text-xs font-black">{dayNum}</span>
+                              {dayEvts.length > 0 && (
+                                <div className="flex items-center gap-1">
+                                  <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white' : 'bg-pink-500'}`}></span>
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <span className="text-xl">📅</span>
                   </div>
 
-                  <div className="space-y-2.5 max-h-[420px] overflow-y-auto pr-1">
-                    {dayEvents.length === 0 ? (
-                      <div className="p-12 text-center space-y-2">
-                        <span className="text-3xl block">☕</span>
-                        <p className="text-xs text-slate-400 font-medium">No hay eventos para este día.</p>
-                      </div>
-                    ) : (
-                      dayEvents.map((evt) => (
-                        <div key={evt.id} className="p-3.5 bg-slate-50/90 border border-slate-200/80 rounded-2xl space-y-2 relative shadow-2xs">
-                          <div className="flex items-start justify-between">
-                            <div className="space-y-0.5">
-                              {getCategoryBadge(evt.category)}
-                              <h4 className="font-bold text-slate-800 text-xs pt-1">{evt.title}</h4>
-                            </div>
-                            {evt.source !== 'google' && (
-                              <button onClick={() => handleDeleteEvent(evt.id)} className="text-slate-300 hover:text-rose-500 text-xs p-1">✕</button>
-                            )}
-                          </div>
-
-                          {/* MOSTRAR LINK DE MEET O UBICACIÓN SI ES REUNIÓN */}
-                          {evt.category === 'reunion' && (
-                            <div className="text-[11px] font-semibold text-slate-600 bg-white/80 p-2 rounded-xl border border-slate-100">
-                              {evt.meetLink ? (
-                                <a href={evt.meetLink} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
-                                  📹 Entrar a Google Meet
-                                </a>
-                              ) : (
-                                <span>📍 Ubicación: {evt.location || 'Presencial'}</span>
-                              )}
-                            </div>
-                          )}
-
-                          <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold pt-1 border-t border-slate-100">
-                            <span>🏷️ Marca: <strong className="text-purple-600">{evt.brand}</strong></span>
-                            <span>🕒 {evt.time}</span>
-                          </div>
+                  <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-3xl space-y-4 shadow-xl flex flex-col justify-between h-full">
+                    <div className="space-y-4">
+                      <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+                        <div>
+                          <h3 className="font-extrabold text-slate-800 text-base">Día {selectedDay} de {monthName}</h3>
+                          <p className="text-[11px] text-slate-400 font-medium">{dayEvents.length} eventos programados</p>
                         </div>
-                      ))
-                    )}
+                        <span className="text-xl">📅</span>
+                      </div>
+
+                      <div className="space-y-2.5 max-h-[420px] overflow-y-auto pr-1">
+                        {dayEvents.length === 0 ? (
+                          <div className="p-12 text-center space-y-2">
+                            <span className="text-3xl block">☕</span>
+                            <p className="text-xs text-slate-400 font-medium">No hay eventos para este día.</p>
+                          </div>
+                        ) : (
+                          dayEvents.map((evt) => (
+                            <div key={evt.id} className="p-3.5 bg-slate-50/90 border border-slate-200/80 rounded-2xl space-y-2 relative shadow-2xs">
+                              <div className="flex items-start justify-between">
+                                <div className="space-y-0.5">
+                                  {getCategoryBadge(evt.category)}
+                                  <h4 className="font-bold text-slate-800 text-xs pt-1">{evt.title}</h4>
+                                </div>
+                                <button onClick={() => handleDeleteEvent(evt.id)} className="text-slate-300 hover:text-rose-500 text-xs p-1">✕</button>
+                              </div>
+
+                              {evt.category === 'reunion' && (
+                                <div className="text-[11px] font-semibold text-slate-600 bg-white/80 p-2 rounded-xl border border-slate-100">
+                                  {evt.meetLink ? (
+                                    <a href={evt.meetLink} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
+                                      📹 Entrar a Google Meet
+                                    </a>
+                                  ) : (
+                                    <span>📍 Ubicación: {evt.location || 'Presencial'}</span>
+                                  )}
+                                </div>
+                              )}
+
+                              <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold pt-1 border-t border-slate-100">
+                                <span>🏷️ Categoría: <strong className="text-purple-600">{getCategoryLabel(evt.category)}</strong></span>
+                                <span>🕒 {evt.time}</span>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </>
+            )}
           </div>
         )}
 
@@ -1052,7 +1097,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
       </main>
 
-      {/* MODAL CREAR EVENTO CON CATEGORÍA Y MODALIDAD VIRTUAL/PRESENCIAL */}
+      {/* MODAL CREAR EVENTO CON HORA DE INICIO Y FIN Y ORDEN DE CATEGORÍAS */}
       {showCreateEventModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl border border-purple-100 relative">
@@ -1091,25 +1136,36 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 />
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Fecha</label>
+                <input
+                  type="date"
+                  required
+                  value={createDate}
+                  onChange={(e) => setCreateDate(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold outline-none"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Fecha</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Hora Inicio *</label>
                   <input
-                    type="date"
+                    type="time"
                     required
-                    value={createDate}
-                    onChange={(e) => setCreateDate(e.target.value)}
+                    value={createStartTime}
+                    onChange={(e) => setCreateStartTime(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Hora</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Hora Fin *</label>
                   <input
                     type="time"
                     required
-                    value={createTime}
-                    onChange={(e) => setCreateTime(e.target.value)}
+                    value={createEndTime}
+                    onChange={(e) => setCreateEndTime(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold outline-none"
                   />
                 </div>
@@ -1122,14 +1178,13 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                   onChange={(e) => setCreateCategory(e.target.value as any)}
                   className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none"
                 >
-                  <option value="reunion">👥 Reunión</option>
-                  <option value="grabacion">🎥 Grabación</option>
-                  <option value="entrega">📤 Entrega / Borrador</option>
-                  <option value="pago">💵 Pago & Facturación</option>
+                  <option value="grabacion">🎥 Grabaciones</option>
+                  <option value="entrega">📤 Entregas / Borradores</option>
+                  <option value="reunion">👥 Reuniones</option>
+                  <option value="pago">💵 Pagos & Facturas</option>
                 </select>
               </div>
 
-              {/* CAMPOS ADICIONALES PARA REUNIONES */}
               {createCategory === 'reunion' && (
                 <div className="p-3 bg-blue-50/60 border border-blue-100 rounded-2xl space-y-2.5">
                   <label className="block text-[11px] font-bold text-blue-900">Modalidad de Reunión</label>
@@ -1159,7 +1214,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                       <label className="block text-[10px] font-bold text-blue-900 mb-1">Lugar / Dirección</label>
                       <input
                         type="text"
-                        placeholder="Ej: Starbuck San Isidro, Oficina..."
+                        placeholder="Ej: Starbucks San Isidro, Oficina..."
                         value={locationAddress}
                         onChange={(e) => setLocationAddress(e.target.value)}
                         className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium outline-none"
