@@ -342,7 +342,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  className="font-black text-slate-800 text-lg">{monthName}</h3>;
+  const monthName = currentDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
 
   const firstDayOfMonth = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
