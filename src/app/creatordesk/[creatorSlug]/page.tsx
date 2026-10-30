@@ -485,7 +485,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       }
     } catch (err) {
       console.error('Error durante auditoría de post:', err);
-    } fontally {
+    } finally {
       setIsAuditing(false);
     }
   };
