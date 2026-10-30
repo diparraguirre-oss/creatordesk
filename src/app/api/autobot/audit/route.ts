@@ -8,85 +8,64 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'URL requerida' }, { status: 400 });
     }
 
-    // 1. Extraer identificador de la publicación (Shortcode / ID)
-    let postId = '';
+    // Limpiar URL y extraer identificador
     const cleanUrl = postUrl.split('?')[0].replace(/\/$/, '');
     const urlParts = cleanUrl.split('/');
-    
+    let shortcode = '';
+
     if (platform === 'instagram') {
       const pIndex = urlParts.findIndex((part: string) => part === 'p' || part === 'reel');
       if (pIndex !== -1 && urlParts[pIndex + 1]) {
-        postId = urlParts[pIndex + 1];
-      }
-    } else {
-      const videoIndex = urlParts.findIndex((part: string) => part === 'video');
-      if (videoIndex !== -1 && urlParts[videoIndex + 1]) {
-        postId = urlParts[videoIndex + 1];
+        shortcode = urlParts[pIndex + 1];
       }
     }
 
-    // 2. Extracción de Comentarios Reales de la Publicación
-    let extractedComments: { user: string; text: string }[] = [];
+    // Extracción dinámica de comentarios vía fetch estructurado
+    let extractedCommentsMap: Record<string, string> = {};
 
-    // NOTA: Si cuentas con una API Key de RapidAPI (Instagram Scraper / TikTok Scraper), se incluye la llamada directa:
-    const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
-
-    if (RAPIDAPI_KEY) {
+    if (shortcode) {
       try {
-        const apiEndpoint = platform === 'instagram' 
-          ? `https://instagram-scraper-2022.p.rapidapi.com/ig/comments/?shortcode=${postId}`
-          : `https://tiktok-all-in-one.p.rapidapi.com/comments?video_id=${postId}`;
-
-        const apiRes = await fetch(apiEndpoint, {
+        // Intento de extracción pública
+        const igRes = await fetch(`https://www.instagram.com/p/${shortcode}/?__a=1&__d=dis`, {
           headers: {
-            'x-rapidapi-key': RAPIDAPI_KEY,
-            'x-rapidapi-host': platform === 'instagram' ? 'instagram-scraper-2022.p.rapidapi.com' : 'tiktok-all-in-one.p.rapidapi.com'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json'
           }
         });
 
-        if (apiRes.ok) {
-          const apiData = await apiRes.json();
-          const rawComments = apiData.comments || apiData.data?.comments || [];
-
-          extractedComments = rawComments.map((c: any) => ({
-            user: `@${(c.user?.username || c.author?.unique_id || c.username || '').toLowerCase()}`,
-            text: c.text || c.comment || c.content || ''
-          }));
+        if (igRes.ok) {
+          const igData = await igRes.json();
+          const items = igData?.graphql?.shortcode_media?.edge_media_to_parent_comment?.edges || [];
+          items.forEach((edge: any) => {
+            const user = `@${edge.node.owner.username.toLowerCase()}`;
+            const text = edge.node.text;
+            extractedCommentsMap[user] = text;
+          });
         }
       } catch (e) {
-        console.error('Error al conectar con la API de scraping:', e);
+        console.error('Error al obtener datos públicos:', e);
       }
     }
 
-    // 3. Cruce de Datos entre la Lista de Pod y los Comentarios Reales
+    // Cruce dinámico con la lista de participantes del Pod
     const auditResults = (participants || []).map((userHandle: string) => {
       const cleanHandle = userHandle.toLowerCase().trim();
-      const userCommentObj = extractedComments.find(
-        (c) => c.user === cleanHandle || c.user === `@${cleanHandle.replace('@', '')}`
-      );
-
-      const hasComment = Boolean(userCommentObj);
-      const commentText = userCommentObj ? userCommentObj.text : 'Sin comentario detectado';
+      const realComment = extractedCommentsMap[cleanHandle];
+      const hasComment = Boolean(realComment);
 
       let mainBadgeText = '❌ Video no Comentado';
       let mainBadgeClass = 'bg-rose-500 text-white';
       let isCriteriaMet = false;
 
-      if (criteria === 'comments' || criteria === 'both') {
-        if (hasComment) {
-          mainBadgeText = '✅ Video Comentado';
-          mainBadgeClass = 'bg-emerald-500 text-white';
-          isCriteriaMet = true;
-        }
-      } else if (criteria === 'likes') {
-        mainBadgeText = '✅ Like Realizado';
+      if (hasComment) {
+        mainBadgeText = '✅ Video Comentado';
         mainBadgeClass = 'bg-emerald-500 text-white';
         isCriteriaMet = true;
       }
 
       return {
         user: userHandle,
-        textDisplay: hasComment ? `"${commentText}"` : 'Sin comentario detectado',
+        textDisplay: hasComment ? `"${realComment}"` : 'Sin comentario detectado',
         mainBadgeText,
         mainBadgeClass,
         isCriteriaMet
@@ -95,13 +74,11 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      postId,
-      totalCommentsExtracted: extractedComments.length,
       results: auditResults
     });
 
   } catch (error) {
-    console.error('Error en /api/autobot/audit:', error);
-    return NextResponse.json({ error: 'Error interno en la auditoría' }, { status: 500 });
+    console.error('Error en auditoría:', error);
+    return NextResponse.json({ error: 'Error interno en servidor' }, { status: 500 });
   }
 }
