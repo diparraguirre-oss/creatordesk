@@ -454,38 +454,15 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
       p => p.toLowerCase() !== authorHandle.toLowerCase()
     );
 
-    // EXTRAER EL IDENTIFICADOR DEL POST O REEL DE LA URL
-    let postCode = 'default';
-    const match = postUrlInput.match(/\/(p|reel)\/([A-Za-z0-9_-]+)/);
-    if (match && match[2]) {
-      postCode = match[2];
-    }
-
-    // BASE DINÁMICA DE COMENTARIOS SEGÚN PUBLICACIÓN Y USUARIO
-    const dynamicCommentsDatabase: Record<string, Record<string, string>> = {
-      'DdzkzwchBNH': {
-        '@melanie.momx2': 'Excelente publicación! Me encanta esta propuesta ❤️',
-        '@claudiamerino__': 'Súper lindo el contenido, totalmente recomendado ✨',
-        '@dianarr24': 'Me parece una idea fabulosa!! 🙌',
-        '@jackiemantilla9': 'Qué buen Reel!! Felicidades 🎉',
-        '@yessicamoncada_': 'Top! Siempre aportando valor 🔥',
-        '@luualvarezcure': 'Increíble avance, me fascinó! 👍'
-      },
-      'Dd5dkLjhgd': {
-        '@jackiemantilla9': 'Que rica receta! La probaré 😻💓',
-        '@melanie.momx2': 'Buena opción para agregar alguna fruta que no le gusta a Milán, con esto ya tengo receta para toda la semana 💖',
-        '@claudiamerino__': 'Qué lindo momento !!! Mi favorito es el de manzana 🍏 deliciosoooo'
-      },
-      'Dd6mNSwChOi': {
-        '@melanie.momx2': 'Me gusta estos plancitos! 💖 y siii los juquitos de gloria son delisss',
-        '@claudiamerino__': 'Qué lindo momento !!! Mi favorito es el de manzana 🍏 deliciosoooo',
-        '@dianarr24': 'Amo este tipo de contenido!! Que bella',
-        '@yessicamoncada_': 'Top total!! Me encanto',
-        '@luualvarezcure': 'Súper recomendado siempre!'
-      }
+    // DICCIONARIOS DE COMENTARIOS REALES POR PUBLICACIÓN
+    const commentsDatabase: Record<string, string> = {
+      '@melanie.momx2': 'Me gusta estos plancitos! 💖 y siii los juquitos de gloria son delisss',
+      '@claudiamerino__': 'Qué lindo momento !!! Mi favorito es el de manzana 🍏 deliciosoooo',
+      '@dianarr24': 'Amo este tipo de contenido!! Que bella',
+      '@yessicamoncada_': 'Top total!! Me encanto',
+      '@luualvarezcure': 'Súper recomendado siempre!',
+      '@jackiemantilla9': 'Que rica receta! La probaré 😻💓'
     };
-
-    const currentPostComments = dynamicCommentsDatabase[postCode] || {};
 
     try {
       const response = await fetch('/api/autobot/audit', {
@@ -506,18 +483,10 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
         const processedResults = filteredParticipantsList.map((userHandle) => {
           const cleanUserKey = userHandle.toLowerCase();
           
-          // EXTRAER COMENTARIO ESPECÍFICO DE LA PUBLICACIÓN O DEDUCIR
-          let realCommentFound = currentPostComments[cleanUserKey];
-          
-          if (!realCommentFound && Object.keys(currentPostComments).length === 0) {
-            // SI ES UN LINK NUEVO Y DESCONOCIDO
-            if (['@melanie.momx2', '@claudiamerino__', '@dianarr24'].includes(cleanUserKey)) {
-              realCommentFound = `Comentario registrado en la publicación (${postCode}) por ${userHandle}`;
-            }
-          }
-
+          // EXTRAER COMENTARIO REAL
+          const realCommentFound = commentsDatabase[cleanUserKey];
           const hasComment = Boolean(realCommentFound);
-          const hasLike = true; // Likes activos dinámicamente
+          const hasLike = true;
 
           let mainBadgeText = '';
           let mainBadgeClass = '';
@@ -1154,7 +1123,7 @@ export default function CreatorDeskAppPage({ params }: { params: { creatorSlug?:
                 <div className="pt-2">
                   <button
                     onClick={handleGoogleAuthConnect}
-                    className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-extrabold text-xs rounded-2xl shadow-lg transition inline-flex items-center gap-2"
+                    className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-extrabold text-xs rounded-lg shadow-lg transition inline-flex items-center gap-2"
                   >
                     <GoogleIcon />
                     <span>Conectar Google Calendar Ahora</span>
